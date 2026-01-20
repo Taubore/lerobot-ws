@@ -6,7 +6,7 @@ PORT = "/dev/ttyACM0"                     # Port du bras leader - AJUSTER SELON 
 ROBOT_ID = "bras_leader"                  # Identifiant du bras leader - AJUSTER SELON VOTRE CONFIG.
 DT = 0.05                                 # 20 Hz (1 / 0.05)
 DURATION = 20.0                           # Durée d'enregistrement (secondes)
-FICHIER_CSV = "lerobot_ws/mouvement.csv"  # Fichier de sauvegarde des mouvements - AJUSTER LE DOSSIER SELON VOTRE CONFIG.
+FICHIER_CSV = "lerobot-ws/mouvement.csv"  # Fichier de sauvegarde - AJUSTER LE DOSSIER SELON VOTRE CONFIG.
 
 JOINTS = [
     "shoulder_pan",
@@ -26,17 +26,20 @@ for i in range(10, 0, -1):
     print(f"Début de l'enregistrement dans {i} secondes...", end="\r", flush=True)
     sleep(1)
 
+# Nombre d'itérations pour la durée spécifiée
 nb = int(DURATION / DT)
 
 with open(FICHIER_CSV, mode="w", newline="") as f:
     writer = csv.writer(f)
 
-    # En-tête
+    # En-tête du fichier CSV
     writer.writerow(["t"] + JOINTS)
 
+    # Enregistrement des mouvements selon le nombre d'itérations calculé plus haut
     for i in range(nb + 1):
         t = i * DT
         print(f"Bouger le bras leader. {t:.2f} secondes restantes...", end="\r", flush=True)
+        # Récupération de l'état actuel du robot
         action = robot.get_action()
 
         row = [f"{t:.2f}"]

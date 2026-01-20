@@ -6,7 +6,7 @@ PORT = "/dev/ttyACM1"
 ROBOT_ID = "bras_suiveur"
 
 DT = 0.05
-FICHIER_CSV = "lerobot_ws/mouvement.csv"
+FICHIER_CSV = "lerobot-ws/mouvement.csv"
 
 JOINTS = [
     "shoulder_pan",
@@ -22,14 +22,17 @@ robot.connect()
 
 print("\nRejouer naïvement la démonstration sur le bras follower...")
 
+# Lecture du fichier CSV contenant les mouvements enregistrés
 with open(FICHIER_CSV, newline="") as f:
     reader = csv.DictReader(f)
 
+    # Pour chaque ligne du fichier CSV
     for row in reader:
         action = {}
         for j in JOINTS:
             action[f"{j}.pos"] = float(row[j])
 
+        # Envoi de l'action au robot 
         robot.send_action(action)
         sleep(DT)
 
