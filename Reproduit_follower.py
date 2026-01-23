@@ -1,3 +1,15 @@
+'''
+Reproduire les mouvements générés par le script "Enregistre_leader.py".
+
+Objectif:
+Rejouer naïvement sur le bras suiveur LeRobot SO-101. Naïvement signifie rejouer tel quel sans correction
+les mouvements enregistrés par le script "Enregistre_leader.py".
+
+Hypothèses importantes:
+- Un fichier CSV nommé "mouvement.csv" présent dans le dossier "lerobot-ws". Fichier généré par le script 
+  "Enregistre_leader.py". 
+- Le bras suiveur est connecté et opérationnel (calibré)
+'''
 from lerobot.robots.so101_follower import SO101Follower, SO101FollowerConfig
 from time import sleep
 import csv

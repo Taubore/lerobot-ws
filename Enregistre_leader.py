@@ -1,3 +1,13 @@
+'''
+Enregistrement des mouvements du bras leader du robot LeRobot SO-101.
+
+Objectif:  
+    Sauvegarder dans un fichier CSV les positions des articulations du bras leader à intervalles réguliers pendant une 
+    durée définie.
+
+Hypothèses importantes:
+    - Le bras leader est connecté et opérationnel (calibré) 
+'''
 from lerobot.teleoperators.so101_leader import SO101Leader, SO101LeaderConfig
 from time import sleep
 import csv
