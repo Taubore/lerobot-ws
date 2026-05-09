@@ -13,7 +13,8 @@ from time import sleep
 import csv
 
 PORT = "/dev/ttyACM0"                     # Port du bras leader - AJUSTER SELON VOTRE CONFIG.
-ROBOT_ID = "bras_leader"                  # Identifiant du bras leader - AJUSTER SELON VOTRE CONFIG.
+ROBOT_ID = "bras_leader"       
+           # Identifiant du bras leader - AJUSTER SELON VOTRE CONFIG.
 DT = 0.05                                 # 20 Hz (1 / 0.05)
 DURATION = 20.0                           # Durée d'enregistrement (secondes)
 FICHIER_CSV = "lerobot-ws/mouvement.csv"  # Fichier de sauvegarde - AJUSTER LE DOSSIER SELON VOTRE CONFIG.
