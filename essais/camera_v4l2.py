@@ -9,7 +9,7 @@ import subprocess
 from pathlib import Path
 
 
-def appliquer_controle_v4l2(camera: str, controle: str, valeur: int | str) -> None:
+def _appliquer_controle_v4l2(camera: str, controle: str, valeur: int | str) -> None:
     """
     Applique un contrôle V4L2 générique sur une caméra.
 
@@ -63,7 +63,7 @@ def initialiser_camera_arducam(camera: str = "/dev/video2") -> None:
     On pourra y ajouter plus tard d'autres réglages V4L2 sans modifier tous les
     scripts d'essai.
     """
-    appliquer_controle_v4l2(
+    _appliquer_controle_v4l2(
         camera=camera,
         controle="power_line_frequency",
         valeur=2,
