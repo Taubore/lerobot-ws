@@ -12,8 +12,12 @@ Contrôles pendant l'enregistrement :
 - Échap : arrêter la session.
 """
 
-import subprocess
+from pathlib import Path
+from typing import Any
 
+from camera_v4l2 import initialiser_camera_arducam
+
+from lerobot.cameras import CameraConfig
 from lerobot.cameras.opencv import OpenCVCameraConfig
 from lerobot.common.control_utils import init_keyboard_listener
 from lerobot.datasets import LeRobotDataset
@@ -22,6 +26,7 @@ from lerobot.robots.so_follower import SO101Follower, SO101FollowerConfig
 from lerobot.scripts.lerobot_record import record_loop
 from lerobot.teleoperators.so_leader import SO101Leader, SO101LeaderConfig
 from lerobot.utils.feature_utils import hw_to_dataset_features
+from lerobot.datasets.video_utils import VideoEncodingManager
 
 
 PORT_LEADER = "/dev/ttyACM0"
@@ -30,7 +35,7 @@ PORT_FOLLOWER = "/dev/ttyACM1"
 ID_LEADER = "bras_leader"
 ID_FOLLOWER = "bras_suiveur"
 
-CAMERA_ARDUCAM = "/dev/video2"
+CAMERA_ARDUCAM = Path("/dev/video2")
 
 FPS = 30
 LARGEUR_IMAGE = 1280
@@ -44,32 +49,12 @@ REPO_DATASET = "taubore/so101_cube_vers_carre_pilote"
 TACHE = "Prendre le cube noir et le déposer dans le carré beige."
 
 
-def regler_camera_60_hz() -> None:
-    """
-    Régler la fréquence anti-scintillement de la caméra pour le Québec.
-
-    La valeur 2 correspond normalement à 60 Hz avec les caméras UVC/V4L2.
-    Cette commande évite de dépendre d'un réglage manuel fait avant le script.
-    """
-
-    subprocess.run(
-        [
-            "v4l2-ctl",
-            "-d",
-            CAMERA_ARDUCAM,
-            "--set-ctrl",
-            "power_line_frequency=2",
-        ],
-        check=False,
-    )
-
-
 def creer_robot() -> SO101Follower:
     """
     Créer le bras suiveur avec la caméra globale.
     """
 
-    cameras = {
+    cameras: dict[str, CameraConfig] = {
         "globale": OpenCVCameraConfig(
             index_or_path=CAMERA_ARDUCAM,
             width=LARGEUR_IMAGE,
@@ -109,8 +94,11 @@ def creer_dataset(robot: SO101Follower) -> LeRobotDataset:
     déclarer manuellement les noms des moteurs, actions, états et images.
     """
 
-    action_features = hw_to_dataset_features(robot.action_features, "action")
-    observation_features = hw_to_dataset_features(robot.observation_features, "observation")
+    action_hw_features: dict[str, type | tuple[Any, ...]] = dict(robot.action_features)
+    observation_hw_features: dict[str, type | tuple[Any, ...]] = dict(robot.observation_features)
+
+    action_features = hw_to_dataset_features(action_hw_features, "action")
+    observation_features = hw_to_dataset_features(observation_hw_features, "observation")
     dataset_features = {**action_features, **observation_features}
 
     return LeRobotDataset.create(
@@ -128,7 +116,7 @@ def enregistrer_dataset() -> None:
     Enregistrer les épisodes du dataset pilote.
     """
 
-    regler_camera_60_hz()
+    initialiser_camera_arducam(str(CAMERA_ARDUCAM))
 
     robot = creer_robot()
     teleop = creer_teleop()
@@ -150,34 +138,9 @@ def enregistrer_dataset() -> None:
 
         episode = 0
 
-        while episode < NB_EPISODES and not events["stop_recording"]:
-            print(f"Épisode {episode + 1}/{NB_EPISODES}")
-
-            record_loop(
-                robot=robot,
-                events=events,
-                fps=FPS,
-                teleop_action_processor=teleop_action_processor,
-                robot_action_processor=robot_action_processor,
-                robot_observation_processor=robot_observation_processor,
-                teleop=teleop,
-                dataset=dataset,
-                control_time_s=DUREE_EPISODE_S,
-                single_task=TACHE,
-                display_data=False,
-            )
-
-            if events["rerecord_episode"]:
-                events["rerecord_episode"] = False
-                events["exit_early"] = False
-                dataset.clear_episode_buffer()
-                continue
-
-            dataset.save_episode()
-            episode += 1
-
-            if episode < NB_EPISODES and not events["stop_recording"]:
-                print("Réinitialisation")
+        with VideoEncodingManager(dataset):
+            while episode < NB_EPISODES and not events["stop_recording"]:
+                print(f"Épisode {episode + 1}/{NB_EPISODES}")
 
                 record_loop(
                     robot=robot,
@@ -187,17 +150,49 @@ def enregistrer_dataset() -> None:
                     robot_action_processor=robot_action_processor,
                     robot_observation_processor=robot_observation_processor,
                     teleop=teleop,
-                    control_time_s=DUREE_REINITIALISATION_S,
+                    dataset=dataset,
+                    control_time_s=DUREE_EPISODE_S,
                     single_task=TACHE,
                     display_data=False,
                 )
+
+                if events["rerecord_episode"]:
+                    events["rerecord_episode"] = False
+                    events["exit_early"] = False
+                    dataset.clear_episode_buffer()
+                    continue
+
+                dataset.save_episode()
+                episode += 1
+
+                if episode < NB_EPISODES and not events["stop_recording"]:
+                    print("Réinitialisation")
+
+                    record_loop(
+                        robot=robot,
+                        events=events,
+                        fps=FPS,
+                        teleop_action_processor=teleop_action_processor,
+                        robot_action_processor=robot_action_processor,
+                        robot_observation_processor=robot_observation_processor,
+                        teleop=teleop,
+                        control_time_s=DUREE_REINITIALISATION_S,
+                        single_task=TACHE,
+                        display_data=False,
+                    )
 
     except KeyboardInterrupt:
         pass
 
     finally:
-        teleop.disconnect()
-        robot.disconnect()
+        if dataset is not None:
+            dataset.finalize()
+
+        if teleop.is_connected:
+            teleop.disconnect()
+
+        if robot.is_connected:
+            robot.disconnect()        
 
     print("Terminé")
 

@@ -1,1 +1,8 @@
+__pycache__/
+*.pyc
+
+.vscode/*
+!.vscode/launch.json
+!.vscode/settings.json
+
 mouvement.csv

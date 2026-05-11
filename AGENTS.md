@@ -21,6 +21,7 @@
 - Privilégier un code lisible, maintenable, pédagogique, mais pas trop lent ni trop scolaire.
 - Éviter la surconception.
 - Ne pas utiliser les chaînes littérales pour les conditions, utiliser constantes, enum, dataclasses, etc. en respectant les bonnes pratiques
+- Utilisation de Pylance : niveau de vérification de types `standard`
 
 ## Style du code
 - Utiliser des identifiants en français sans accents.

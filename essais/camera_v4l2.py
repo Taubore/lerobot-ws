@@ -52,7 +52,7 @@ def _appliquer_controle_v4l2(camera: str, controle: str, valeur: int | str) -> N
         ) from erreur
 
 
-def initialiser_camera_arducam(camera: str = "/dev/video2") -> None:
+def initialiser_camera_arducam(camera: str) -> None:
     """
     Initialise l'Arducam pour les scripts LeRobot du projet.
 
