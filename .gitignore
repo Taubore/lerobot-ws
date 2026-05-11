@@ -11,6 +11,7 @@ __pycache__/
 
 # Données volumineuses ou générées
 datasets/
+captures/
 outputs/
 runs/
 wandb/

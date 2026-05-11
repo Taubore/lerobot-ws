@@ -1,0 +1,30 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "LeRobot - entraîner ACT dataset pilote",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "lerobot.scripts.lerobot_train",
+            "console": "integratedTerminal",
+            "cwd": "/home/taubore/Projets/lerobot/lerobot-ws",
+            "args": [
+                "--dataset.repo_id=taubore/so101_cube_vers_carre_pilote",
+                "--dataset.root=/home/taubore/Projets/lerobot/lerobot-ws/datasets/taubore/so101_cube_vers_carre_pilote",
+                "--policy.type=act",
+                "--output_dir=/home/taubore/Projets/lerobot/lerobot-ws/outputs/train/act_so101_cube_vers_carre_test_1000",
+                "--job_name=act_so101_cube_vers_carre_test_1000",
+                "--policy.device=cuda",
+                "--steps=1000",
+                "--batch_size=8",
+                "--save_freq=1000",
+                "--log_freq=50",
+                "--wandb.enable=false",
+                "--policy.push_to_hub=false"
+            ]
+        }
+    ]
+}
