@@ -1,8 +1,22 @@
+# Environnements virtuels et fichiers compilés
+.venv/
+venv/
 __pycache__/
 *.pyc
 
+# Fichiers locaux VSCode, sauf les configurations de lancement et les paramètres
 .vscode/*
 !.vscode/launch.json
 !.vscode/settings.json
 
-mouvement.csv
+# Données volumineuses ou générées
+datasets/
+outputs/
+runs/
+wandb/
+*.log
+
+# Secrets
+.env
+*.secret
+secrets.*

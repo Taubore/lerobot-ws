@@ -12,10 +12,11 @@ Contrôles pendant l'enregistrement :
 - Échap : arrêter la session.
 """
 
+import camera_v4l2
+import utilitaires
+
 from pathlib import Path
 from typing import Any
-
-from camera_v4l2 import initialiser_camera_arducam
 
 from lerobot.cameras import CameraConfig
 from lerobot.cameras.opencv import OpenCVCameraConfig
@@ -42,8 +43,11 @@ LARGEUR_IMAGE = 1280
 HAUTEUR_IMAGE = 720
 
 NB_EPISODES = 10
-DUREE_EPISODE_S = 20
-DUREE_REINITIALISATION_S = 10
+DUREE_EPISODE_S = 15
+DUREE_REINITIALISATION_S = 6
+
+EMPLACEMENT_PROJET = Path("/home/taubore/Projets/lerobot/lerobot-ws")
+EMPLACEMENT_DATASETS = EMPLACEMENT_PROJET / "datasets"
 
 REPO_DATASET = "taubore/so101_cube_vers_carre_pilote"
 TACHE = "Prendre le cube noir et le déposer dans le carré beige."
@@ -103,6 +107,7 @@ def creer_dataset(robot: SO101Follower) -> LeRobotDataset:
 
     return LeRobotDataset.create(
         repo_id=REPO_DATASET,
+        root=EMPLACEMENT_DATASETS / REPO_DATASET,
         fps=FPS,
         features=dataset_features,
         robot_type=robot.name,
@@ -116,7 +121,7 @@ def enregistrer_dataset() -> None:
     Enregistrer les épisodes du dataset pilote.
     """
 
-    initialiser_camera_arducam(str(CAMERA_ARDUCAM))
+    camera_v4l2.initialiser_camera_arducam(str(CAMERA_ARDUCAM))
 
     robot = creer_robot()
     teleop = creer_teleop()
@@ -141,6 +146,7 @@ def enregistrer_dataset() -> None:
         with VideoEncodingManager(dataset):
             while episode < NB_EPISODES and not events["stop_recording"]:
                 print(f"Épisode {episode + 1}/{NB_EPISODES}")
+                utilitaires.jouer_bips_courts()
 
                 record_loop(
                     robot=robot,
@@ -156,6 +162,8 @@ def enregistrer_dataset() -> None:
                     display_data=False,
                 )
 
+                utilitaires.jouer_bips_courts()
+
                 if events["rerecord_episode"]:
                     events["rerecord_episode"] = False
                     events["exit_early"] = False
@@ -167,6 +175,7 @@ def enregistrer_dataset() -> None:
 
                 if episode < NB_EPISODES and not events["stop_recording"]:
                     print("Réinitialisation")
+                    utilitaires.jouer_bip_reinitialisation()
 
                     record_loop(
                         robot=robot,
@@ -195,6 +204,7 @@ def enregistrer_dataset() -> None:
             robot.disconnect()        
 
     print("Terminé")
+    utilitaires.jouer_bips_fin_cycle()
 
 
 if __name__ == "__main__":
