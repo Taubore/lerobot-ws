@@ -12,9 +12,6 @@ Contrôles pendant l'enregistrement :
 - Échap : arrêter la session.
 """
 
-from commun import camera_v4l2
-from commun import utilitaires
-
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +26,8 @@ from lerobot.teleoperators.so_leader import SO101Leader, SO101LeaderConfig
 from lerobot.utils.feature_utils import hw_to_dataset_features
 from lerobot.datasets.video_utils import VideoEncodingManager
 
+from commun import camera_v4l2
+from commun import utilitaires
 
 PORT_LEADER = "/dev/ttyACM0"
 PORT_FOLLOWER = "/dev/ttyACM1"

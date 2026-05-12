@@ -12,19 +12,38 @@
             "console": "integratedTerminal",
             "cwd": "/home/taubore/Projets/lerobot/lerobot-ws",
             "args": [
-                "--dataset.repo_id=taubore/so101_cube_vers_carre_pilote",
-                "--dataset.root=/home/taubore/Projets/lerobot/lerobot-ws/datasets/taubore/so101_cube_vers_carre_pilote",
+                "--dataset.repo_id=taubore/deplacer_cube_v01",
+                "--dataset.root=/home/taubore/Projets/lerobot/lerobot-ws/datasets/taubore/deplacer_cube_v01",
                 "--policy.type=act",
-                "--output_dir=/home/taubore/Projets/lerobot/lerobot-ws/outputs/train/act_so101_cube_vers_carre_test_1000",
-                "--job_name=act_so101_cube_vers_carre_test_1000",
+                "--output_dir=/home/taubore/Projets/lerobot/lerobot-ws/outputs/train/deplacer_cube_v01_5000",
+                "--job_name=act_deplacer_cube_v01_5000",
                 "--policy.device=cuda",
-                "--steps=1000",
+                "--steps=5000",
                 "--batch_size=8",
                 "--save_freq=1000",
                 "--log_freq=50",
                 "--wandb.enable=false",
-                "--policy.push_to_hub=false"
+                "--policy.push_to_hub=false",
             ]
-        }
+        },
+        {
+            "name": "LeRobot - évaluer ACT dataset pilote",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "lerobot.scripts.lerobot_rollout",
+            "console": "integratedTerminal",
+            "cwd": "/home/taubore/Projets/lerobot/lerobot-ws",
+            "args": [
+                "--strategy.type=base",
+                "--policy.path=/home/taubore/Projets/lerobot/lerobot-ws/outputs/train/deplacer_cube_v01_5000/checkpoints/last/pretrained_model",
+                "--robot.type=so101_follower",
+                "--robot.port=/dev/ttyACM1",
+                "--robot.id=bras_suiveur",
+                "--robot.cameras={globale: {type: opencv, index_or_path: /dev/video2, width: 1280, height: 720, fps: 30, fourcc: MJPG}}",
+                "--task=Prendre le cube noir et le déposer dans le carré beige.",
+                "--duration=15",
+                "--display_data=false",
+            ]
+        }        
     ]
 }
