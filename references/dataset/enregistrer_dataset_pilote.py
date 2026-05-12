@@ -8,7 +8,7 @@ dans un carré beige de 10 x 10 cm.
 
 Contrôles pendant l'enregistrement :
 - Flèche droite : terminer l'épisode courant et passer au suivant.
-- Flèche gauche : annuler l'épisode courant et le recommencer.
+- Flèche gauche : annuler l'épisode courant, réinitialiser, puis le recommencer.
 - Échap : arrêter la session.
 """
 
@@ -41,9 +41,9 @@ FPS = 30
 LARGEUR_IMAGE = 1280
 HAUTEUR_IMAGE = 720
 
-NB_EPISODES = 30
-DUREE_EPISODE_S = 15
-DUREE_REINITIALISATION_S = 6
+NB_EPISODES = 10
+DUREE_EPISODE_S = 25
+DUREE_REINITIALISATION_S = 3
 
 EMPLACEMENT_PROJET = Path("/home/taubore/Projets/lerobot/lerobot-ws")
 EMPLACEMENT_DATASETS = EMPLACEMENT_PROJET / "datasets"
@@ -145,7 +145,7 @@ def enregistrer_dataset() -> None:
         with VideoEncodingManager(dataset):
             while episode < NB_EPISODES and not events["stop_recording"]:
                 print(f"Épisode {episode + 1}/{NB_EPISODES}")
-                utilitaires.jouer_bips_courts()
+                utilitaires.jouer_debut_episode()
 
                 record_loop(
                     robot=robot,
@@ -161,12 +161,30 @@ def enregistrer_dataset() -> None:
                     display_data=False,
                 )
 
-                utilitaires.jouer_bips_courts()
+                utilitaires.jouer_fin_episode()
 
                 if events["rerecord_episode"]:
                     events["rerecord_episode"] = False
                     events["exit_early"] = False
                     dataset.clear_episode_buffer()
+
+                    if not events["stop_recording"]:
+                        print("Réinitialisation avant reprise")
+                        utilitaires.jouer_bip_reinitialisation()
+
+                        record_loop(
+                            robot=robot,
+                            events=events,
+                            fps=FPS,
+                            teleop_action_processor=teleop_action_processor,
+                            robot_action_processor=robot_action_processor,
+                            robot_observation_processor=robot_observation_processor,
+                            teleop=teleop,
+                            control_time_s=DUREE_REINITIALISATION_S,
+                            single_task=TACHE,
+                            display_data=False,
+                        )
+
                     continue
 
                 dataset.save_episode()

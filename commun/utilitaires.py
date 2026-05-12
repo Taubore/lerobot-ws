@@ -41,11 +41,23 @@ def jouer_bip(frequence_hz: int, duree_s: float) -> None:
         pass
 
 
-def jouer_bips_courts() -> None:
+def jouer_debut_episode() -> None:
     """
-    Jouer deux bips courts pour marquer le début ou la fin d'un épisode.
+    Jouer deux bips courts pour marquer le début d'un épisode.
     """
 
+    jouer_bip(FREQUENCE_BIP_COURT_HZ, DUREE_BIP_COURT_S)
+    sleep(PAUSE_ENTRE_BIPS_S)
+    jouer_bip(FREQUENCE_BIP_COURT_HZ, DUREE_BIP_COURT_S)
+
+
+def jouer_fin_episode() -> None:
+    """
+    Jouer trois bips courts pour marquer la fin d'un épisode.
+    """
+
+    jouer_bip(FREQUENCE_BIP_COURT_HZ, DUREE_BIP_COURT_S)
+    sleep(PAUSE_ENTRE_BIPS_S)
     jouer_bip(FREQUENCE_BIP_COURT_HZ, DUREE_BIP_COURT_S)
     sleep(PAUSE_ENTRE_BIPS_S)
     jouer_bip(FREQUENCE_BIP_COURT_HZ, DUREE_BIP_COURT_S)
@@ -61,9 +73,12 @@ def jouer_bip_reinitialisation() -> None:
 
 def jouer_bips_fin_cycle() -> None:
     """
-    Jouer deux bips longs pour signaler la fin complète du script.
+    Jouer trois bips pour signaler la fin complète du script.
     """
 
-    jouer_bip(FREQUENCE_BIP_LONG_HZ, DUREE_BIP_LONG_S)
+    jouer_bip(FREQUENCE_BIP_COURT_HZ, DUREE_BIP_LONG_S)
     sleep(PAUSE_ENTRE_BIPS_S)
     jouer_bip(FREQUENCE_BIP_LONG_HZ, DUREE_BIP_LONG_S)
+    sleep(PAUSE_ENTRE_BIPS_S)
+    jouer_bip(FREQUENCE_BIP_COURT_HZ, DUREE_BIP_LONG_S)
+
