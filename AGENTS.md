@@ -15,13 +15,13 @@
 
 ## Règles de code générales 
 - Utiliser Python
+- IMPORTANT : Utilisation de Pylance avec un niveau de vérification de types à `standard`
 - Placer les scripts dans `lerobot-ws`.
 - Privilégier les scripts Python exécutés dans VSCode.
 - Éviter les commandes LeRobot en ligne de commande sauf si c’est beaucoup plus simple pour un diagnostic court.
 - Privilégier un code lisible, maintenable, pédagogique, mais pas trop lent ni trop scolaire.
 - Éviter la surconception.
 - Ne pas utiliser les chaînes littérales pour les conditions, utiliser constantes, enum, dataclasses, etc. en respectant les bonnes pratiques
-- Utilisation de Pylance : niveau de vérification de types `standard`
 
 ## Style du code
 - Utiliser des identifiants en français sans accents.

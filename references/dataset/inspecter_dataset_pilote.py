@@ -18,7 +18,7 @@ l’enregistrement avant d’aller plus loin.
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from lerobot.datasets import LeRobotDataset
 
@@ -201,7 +201,7 @@ def _valeur_non_vide(valeur: Any) -> bool:
     nombre_elements = getattr(valeur, "numel", None)
 
     if callable(nombre_elements):
-        return int(nombre_elements()) > 0
+        return cast(int, nombre_elements()) > 0
 
     taille = getattr(valeur, "size", None)
 
