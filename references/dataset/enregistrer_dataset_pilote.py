@@ -42,14 +42,14 @@ LARGEUR_IMAGE = 1280
 HAUTEUR_IMAGE = 720
 
 NB_EPISODES = 10
-DUREE_EPISODE_S = 25
-DUREE_REINITIALISATION_S = 3
+DUREE_EPISODE_S = 10
+DUREE_REINITIALISATION_S = 5
 
 EMPLACEMENT_PROJET = Path("/home/taubore/Projets/lerobot/lerobot-ws")
 EMPLACEMENT_DATASETS = EMPLACEMENT_PROJET / "datasets"
 
 REPO_DATASET = "taubore/deplacer_cube_v01"
-TACHE = "Prendre le cube noir et le déposer dans le carré beige."
+TACHE = "Prendre le cube noir et le pousser dans le carré beige."
 
 
 def creer_robot() -> SO101Follower:
@@ -120,7 +120,12 @@ def enregistrer_dataset() -> None:
     Enregistrer les épisodes du dataset pilote.
     """
 
-    camera_v4l2.initialiser_camera_arducam(str(CAMERA_ARDUCAM))
+    camera_v4l2.initialiser_camera_arducam(
+        camera=str(CAMERA_ARDUCAM),
+        largeur=LARGEUR_IMAGE,
+        hauteur=HAUTEUR_IMAGE,
+        fps=FPS,
+    )
 
     robot = creer_robot()
     teleop = creer_teleop()

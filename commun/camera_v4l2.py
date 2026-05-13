@@ -8,6 +8,38 @@ ou par LeRobot, sinon la caméra peut déjà être utilisée par le processus.
 import subprocess
 from pathlib import Path
 
+CODEC_MJPEG = "MJPG"
+FPS_CAMERA_ARDUCAM = 30
+LARGEUR_CAMERA_ARDUCAM = 1280
+HAUTEUR_CAMERA_ARDUCAM = 720
+
+
+def _executer_v4l2(commande: list[str], description: str) -> None:
+    """
+    Exécute une commande V4L2 et reformate les erreurs courantes.
+    """
+    try:
+        subprocess.run(
+            commande,
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+
+    except FileNotFoundError as erreur:
+        raise RuntimeError(
+            "La commande `v4l2-ctl` est introuvable. "
+            "Installe le paquet `v4l-utils`."
+        ) from erreur
+
+    except subprocess.CalledProcessError as erreur:
+        message = erreur.stderr.strip() or erreur.stdout.strip()
+
+        raise RuntimeError(
+            f"Impossible d'appliquer le réglage V4L2 : {description}\n"
+            f"Détail : {message}"
+        ) from erreur
+
 
 def _appliquer_controle_v4l2(camera: str, controle: str, valeur: int | str) -> None:
     """
@@ -28,41 +60,59 @@ def _appliquer_controle_v4l2(camera: str, controle: str, valeur: int | str) -> N
         f"--set-ctrl={controle}={valeur}",
     ]
 
-    try:
-        subprocess.run(
-            commande,
-            check=True,
-            text=True,
-            capture_output=True,
-        )
-
-    except FileNotFoundError as erreur:
-        raise RuntimeError(
-            "La commande `v4l2-ctl` est introuvable. "
-            "Installe le paquet `v4l-utils`."
-        ) from erreur
-
-    except subprocess.CalledProcessError as erreur:
-        message = erreur.stderr.strip() or erreur.stdout.strip()
-
-        raise RuntimeError(
-            f"Impossible d'appliquer le contrôle `{controle}` sur {camera}.\n"
-            f"Valeur demandée : {valeur}\n"
-            f"Détail : {message}"
-        ) from erreur
+    _executer_v4l2(
+        commande=commande,
+        description=f"contrôle `{controle}` sur {camera}, valeur demandée `{valeur}`",
+    )
 
 
-def initialiser_camera_arducam(camera: str) -> None:
+def _appliquer_format_video_v4l2(camera: str, largeur: int, hauteur: int, fps: int) -> None:
+    """
+    Force le format vidéo demandé avant l'ouverture de la caméra par OpenCV.
+    """
+    chemin_camera = Path(camera)
+
+    if not chemin_camera.exists():
+        raise FileNotFoundError(f"Caméra introuvable : {camera}")
+
+    commande = [
+        "v4l2-ctl",
+        "-d",
+        camera,
+        f"--set-fmt-video=width={largeur},height={hauteur},pixelformat={CODEC_MJPEG}",
+        f"--set-parm={fps}",
+    ]
+
+    _executer_v4l2(
+        commande=commande,
+        description=f"format {CODEC_MJPEG} {largeur} x {hauteur} à {fps} FPS sur {camera}",
+    )
+
+
+def initialiser_camera_arducam(
+    camera: str,
+    largeur: int = LARGEUR_CAMERA_ARDUCAM,
+    hauteur: int = HAUTEUR_CAMERA_ARDUCAM,
+    fps: int = FPS_CAMERA_ARDUCAM,
+) -> None:
     """
     Initialise l'Arducam pour les scripts LeRobot du projet.
 
     Réglages actuels :
+    - Format vidéo MJPG avec résolution et FPS demandés.
     - `power_line_frequency=2` : anti-scintillement 60 Hz.
 
     Cette fonction est le point d'entrée à utiliser dans les scripts.
     On pourra y ajouter plus tard d'autres réglages V4L2 sans modifier tous les
     scripts d'essai.
     """
+    _appliquer_format_video_v4l2(
+        camera=camera,
+        largeur=largeur,
+        hauteur=hauteur,
+        fps=fps,
+    )
+
     _appliquer_controle_v4l2(
         camera=camera,
         controle="power_line_frequency",
