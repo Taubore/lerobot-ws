@@ -1,4 +1,5 @@
 ## Environnement
+
 - Linux : `Ubuntu 24.04`
 - VSCode
 - Profil VSCode : `LeRobot`
@@ -8,12 +9,14 @@
 - Projet personnel sur GitHub : https://github.com/Taubore/lerobot-ws
 
 # Règles d'environnement de développement
+
 - Garder Git/GitHub propre : branches simples, commits fréquents, messages de commit en français.
 - Maintenir un fichier README.md à jour en respectant les bonnes pratiques de développement communautaire (GitHub).
 - Ne pas créer de nouveaux fichiers ou dossiers sans besoin réel.
 - Faire des changements petits, lisibles et faciles à tester.
 
 ## Règles de code générales 
+
 - Utiliser Python
 - IMPORTANT : Utilisation de Pylance avec un niveau de vérification de types à `standard`
 - Placer les scripts dans `lerobot-ws`.
@@ -24,6 +27,7 @@
 - Ne pas utiliser les chaînes littérales pour les conditions, utiliser constantes, enum, dataclasses, etc. en respectant les bonnes pratiques
 
 ## Style du code
+
 - Utiliser des identifiants en français sans accents.
 - Commentaires en français.
 - Commentaires, docstrings et textes utilisateur en français normal avec accents.
@@ -33,10 +37,17 @@
 - Code bien aéré et suffisament documenté en respectant les bonne pratiques de développement communautaire (GitHub).
 
 ## Règles de code spécifiques à la robotique
+
 - Connexion explicite au matériel.
 - Lecture d’observation.
 - Action simple et progressive seulement si nécessaire.
 - Pauses explicites avec `sleep()`.
 - Messages lisibles.
 - Déconnexion propre avec `finally`.
+
+# Exécution et essais du code
+
+- Ne pas lancer Python avec /usr/bin/python3 qui échouera. 
+- Utiliser 'conda activate lerobot' ou 'conda run -n lerobot python [nom du fichier.py]'
+
 

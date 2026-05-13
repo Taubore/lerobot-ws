@@ -10,15 +10,15 @@
             "request": "launch",
             "module": "lerobot.scripts.lerobot_train",
             "console": "integratedTerminal",
-            "cwd": "/home/taubore/Projets/lerobot/lerobot-ws",
+            "cwd": "${workspaceFolder}",
             "args": [
-                "--dataset.repo_id=taubore/deplacer_cube_v01",
-                "--dataset.root=/home/taubore/Projets/lerobot/lerobot-ws/datasets/taubore/deplacer_cube_v01",
+                "--dataset.repo_id=${input:datasetRepoId}",
+                "--dataset.root=${workspaceFolder}/datasets/${input:datasetRepoId}",
                 "--policy.type=act",
-                "--output_dir=/home/taubore/Projets/lerobot/lerobot-ws/outputs/train/deplacer_cube_v01_5000",
-                "--job_name=act_deplacer_cube_v01_5000",
+                "--output_dir=${workspaceFolder}/outputs/train/${input:datasetRepoId}_${input:stepsEntrainement}",
+                "--job_name=act_${input:stepsEntrainement}",
                 "--policy.device=cuda",
-                "--steps=5000",
+                "--steps=${input:stepsEntrainement}",
                 "--batch_size=8",
                 "--save_freq=1000",
                 "--log_freq=50",
@@ -32,10 +32,10 @@
             "request": "launch",
             "module": "lerobot.scripts.lerobot_rollout",
             "console": "integratedTerminal",
-            "cwd": "/home/taubore/Projets/lerobot/lerobot-ws",
+            "cwd": "${workspaceFolder}",
             "args": [
                 "--strategy.type=base",
-                "--policy.path=/home/taubore/Projets/lerobot/lerobot-ws/outputs/train/deplacer_cube_v01_5000/checkpoints/last/pretrained_model",
+                "--policy.path=${workspaceFolder}/outputs/train/${input:datasetRepoId}_${input:stepsEntrainement}/checkpoints/last/pretrained_model",
                 "--robot.type=so101_follower",
                 "--robot.port=/dev/ttyACM1",
                 "--robot.id=bras_suiveur",
@@ -44,6 +44,20 @@
                 "--duration=15",
                 "--display_data=false",
             ]
-        }        
+        }
+    ],
+    "inputs": [
+        {
+            "id": "datasetRepoId",
+            "type": "promptString",
+            "description": "Identifiant du dataset Hugging Face",
+            "default": "taubore/deplacer_cube_v01"
+        },
+        {
+            "id": "stepsEntrainement",
+            "type": "promptString",
+            "description": "Nombre d'étapes d'entraînement",
+            "default": "5000"
+        }
     ]
 }

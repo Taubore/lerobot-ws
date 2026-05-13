@@ -123,7 +123,7 @@ def _inspecter_champs(ds: LeRobotDataset) -> None:
         _afficher_statut(cle, cle in cles_features)
 
     _afficher_statut(
-        "observations caméra",
+        "observations caméra :",
         bool(cles_camera),
         ", ".join(cles_camera) or "absent",
     )
