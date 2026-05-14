@@ -1,18 +1,14 @@
 """
-Fonctions communes pour configurer les caméras USB avec V4L2.
+Fonctions communes pour configurer les caméras USB avec l'utilitaire V4L2.
 
-Ces réglages doivent être appliqués avant l'ouverture de la caméra par OpenCV
-ou par LeRobot, sinon la caméra peut déjà être utilisée par le processus.
+Ces réglages doivent être appliqués avant l'ouverture de la caméra par OpenCV sinon la caméra 
+peut déjà être utilisée par le processus.
 """
 
 import subprocess
 from pathlib import Path
 
 CODEC_MJPEG = "MJPG"
-FPS_CAMERA_ARDUCAM = 30
-LARGEUR_CAMERA_ARDUCAM = 1280
-HAUTEUR_CAMERA_ARDUCAM = 720
-
 
 def _executer_v4l2(commande: list[str], description: str) -> None:
     """
@@ -89,22 +85,16 @@ def _appliquer_format_video_v4l2(camera: str, largeur: int, hauteur: int, fps: i
     )
 
 
-def initialiser_camera_arducam(
-    camera: str,
-    largeur: int = LARGEUR_CAMERA_ARDUCAM,
-    hauteur: int = HAUTEUR_CAMERA_ARDUCAM,
-    fps: int = FPS_CAMERA_ARDUCAM,
-) -> None:
+def initialiser_camera_arducam(camera: str, largeur: int, hauteur: int, fps: int) -> None:
     """
-    Initialise l'Arducam pour les scripts LeRobot du projet.
+    Initialise l'Arducam.
 
     Réglages actuels :
-    - Format vidéo MJPG avec résolution et FPS demandés.
-    - `power_line_frequency=2` : anti-scintillement 60 Hz.
+    - Format vidéo MJPG avec la résolution et le FPS demandés.
+    - `power_line_frequency=2` : anti-scintillement 60 Hz (50 Hz par défaut)
+    - `exposure_dynamic_framerate=0` : ne pas autoriser la cadence selon l’exposition
 
-    Cette fonction est le point d'entrée à utiliser dans les scripts.
-    On pourra y ajouter plus tard d'autres réglages V4L2 sans modifier tous les
-    scripts d'essai.
+    Cette fonction est le point d'entrée à utiliser pour initialiser une caméra Arducam.
     """
     _appliquer_format_video_v4l2(
         camera=camera,
@@ -117,4 +107,10 @@ def initialiser_camera_arducam(
         camera=camera,
         controle="power_line_frequency",
         valeur=2,
+    )
+
+    _appliquer_controle_v4l2(
+        camera=camera,
+        controle="exposure_dynamic_framerate",
+        valeur=0,
     )

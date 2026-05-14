@@ -38,18 +38,18 @@ ID_FOLLOWER = "bras_suiveur"
 CAMERA_ARDUCAM = Path("/dev/video2")
 
 FPS = 30
-LARGEUR_IMAGE = 1280
-HAUTEUR_IMAGE = 720
+LARGEUR_IMAGE = 640
+HAUTEUR_IMAGE = 480
 
-NB_EPISODES = 10
-DUREE_EPISODE_S = 10
-DUREE_REINITIALISATION_S = 5
+NB_EPISODES = 20
+DUREE_EPISODE_S = 6
+DUREE_REINITIALISATION_S = 3
 
 EMPLACEMENT_PROJET = Path("/home/taubore/Projets/lerobot/lerobot-ws")
 EMPLACEMENT_DATASETS = EMPLACEMENT_PROJET / "datasets"
 
-REPO_DATASET = "taubore/deplacer_cube_v01"
-TACHE = "Prendre le cube noir et le pousser dans le carré beige."
+REPO_DATASET = "taubore/deplacer_cube_v02"
+TACHE = "Prendre le cube noir et le pousser dans le carré blanc."
 
 
 def creer_robot() -> SO101Follower:

@@ -32,9 +32,10 @@ l'ouverture par LeRobot afin de demander explicitement le mode vidéo, par exemp
 Le script `references/dataset/inspecter_dataset_pilote.py` vérifie les épisodes, les durées,
 les champs essentiels et les dimensions des données principales avant un premier entraînement.
 
-Les configurations de débogage VSCode dans `.vscode/launch.json` demandent `dataset.repo_id` et
-le nombre d'étapes au lancement. Ces deux valeurs sont ensuite réutilisées pour construire les
-chemins du dataset, des sorties d'entraînement et de la policy évaluée.
+Les configurations de débogage VSCode dans `.vscode/launch.json` demandent seulement le nom court du
+dataset et le nombre d'étapes au lancement. L'identifiant Hugging Face est construit avec le préfixe
+`taubore/`, tandis que les chemins locaux utilisent le nom court pour éviter les ambiguïtés liées aux
+identifiants contenant un `/`.
 
 ## Structure (versionné)
 
@@ -59,4 +60,3 @@ chemins du dataset, des sorties d'entraînement et de la policy évaluée.
 - Il affiche clairement ce qu’il fait
 - Il se termine proprement
 - Il peut être relu dans trois mois sans devoir deviner son intention
-

@@ -31,7 +31,7 @@ ECART_DUREE_ACCEPTE_S = 1.0
 EMPLACEMENT_PROJET = Path("/home/taubore/Projets/lerobot/lerobot-ws")
 EMPLACEMENT_DATASETS = EMPLACEMENT_PROJET / "datasets"
 
-REPO_DATASET = "taubore/deplacer_cube_v01"
+REPO_DATASET = "taubore/deplacer_cube_v02"
 EMPLACEMENT_DATASET = EMPLACEMENT_DATASETS / REPO_DATASET
 
 CHAMPS_ESSENTIELS = (
