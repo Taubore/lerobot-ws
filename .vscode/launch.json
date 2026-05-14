@@ -41,7 +41,7 @@
                 "--robot.id=bras_suiveur",
                 "--robot.cameras={globale: {type: opencv, index_or_path: /dev/video2, width: 640, height: 480, fps: 30, fourcc: MJPG}}",
                 "--task=Pousser le cube noir dans le carré blanc.",
-                "--duration=4",
+                "--duration=5",
                 "--display_data=false",
             ]
         }
@@ -51,7 +51,7 @@
             "id": "datasetNom",
             "type": "promptString",
             "description": "Nom court du dataset Hugging Face",
-            "default": "deplacer_cube_v02"
+            "default": "deplacer_cube_v04"
         },
         {
             "id": "stepsEntrainement",
