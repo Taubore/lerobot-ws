@@ -12,7 +12,10 @@ Contrôles pendant l'enregistrement :
 - Échap : arrêter la session.
 """
 
+import os
+import shutil
 from pathlib import Path
+from time import sleep
 from typing import Any
 
 from lerobot.cameras import CameraConfig
@@ -36,20 +39,23 @@ ID_LEADER = "bras_leader"
 ID_FOLLOWER = "bras_suiveur"
 
 CAMERA_ARDUCAM = Path("/dev/video2")
+DELAI_AVANT_DEMARRAGE_S = 10
 
 FPS = 30
 LARGEUR_IMAGE = 640
 HAUTEUR_IMAGE = 480
 
-NB_EPISODES = 20
-DUREE_EPISODE_S = 6
-DUREE_REINITIALISATION_S = 3
+NB_EPISODES = 10
+CHANGEMENTS_EPISODES = ()
+DUREE_EPISODE_S = 7
+DUREE_REINITIALISATION_S = 4
 
 EMPLACEMENT_PROJET = Path("/home/taubore/Projets/lerobot/lerobot-ws")
 EMPLACEMENT_DATASETS = EMPLACEMENT_PROJET / "datasets"
 
-REPO_DATASET = "taubore/deplacer_cube_v02"
-TACHE = "Prendre le cube noir et le pousser dans le carré blanc."
+REPO_DATASET_DEFAUT = "taubore/deplacer_cube_v04_lot"
+TACHE_DEFAUT = "Pousser latéralement le cube noir vers le carré blanc."
+REPONSE_SUPPRIMER_DATASET = "o"
 
 
 def creer_robot() -> SO101Follower:
@@ -89,7 +95,7 @@ def creer_teleop() -> SO101Leader:
     return SO101Leader(config)
 
 
-def creer_dataset(robot: SO101Follower) -> LeRobotDataset:
+def creer_dataset(robot: SO101Follower, repo_id: str) -> LeRobotDataset:
     """
     Créer le dataset LeRobot à partir des capacités réelles du robot.
 
@@ -105,14 +111,27 @@ def creer_dataset(robot: SO101Follower) -> LeRobotDataset:
     dataset_features = {**action_features, **observation_features}
 
     return LeRobotDataset.create(
-        repo_id=REPO_DATASET,
-        root=EMPLACEMENT_DATASETS / REPO_DATASET,
+        repo_id=repo_id,
+        root=EMPLACEMENT_DATASETS / repo_id,
         fps=FPS,
         features=dataset_features,
         robot_type=robot.name,
         use_videos=True,
         image_writer_threads=4,
     )
+
+
+def supprimer_dataset_local(repo_id: str) -> None:
+    """
+    Supprimer le dossier local d'un dataset existant.
+    """
+
+    emplacement_datasets = EMPLACEMENT_DATASETS.resolve()
+    chemin_dataset = (EMPLACEMENT_DATASETS / repo_id).resolve()
+    chemin_dataset.relative_to(emplacement_datasets)
+
+    shutil.rmtree(chemin_dataset)
+    print(f"Suppression du dataset local effectué.")
 
 
 def enregistrer_dataset() -> None:
@@ -134,10 +153,29 @@ def enregistrer_dataset() -> None:
     try:
         robot.connect()
         teleop.connect()
-
-        dataset = creer_dataset(robot)
-
         _, events = init_keyboard_listener()
+
+        os.system("clear")
+        repo_dataset = utilitaires.saisir_avec_texte_defaut(
+            "Nom du dataset : ",
+            REPO_DATASET_DEFAUT
+        )
+        tache = utilitaires.saisir_avec_texte_defaut(
+            "Tâche : ",
+            TACHE_DEFAUT
+        )
+
+        try:
+            dataset = creer_dataset(robot, repo_dataset)
+
+        except FileExistsError:
+            reponse = input("Le dataset existe déjà. Le supprimer et poursuivre ? [o/N] : ")
+
+            if reponse.strip().lower() != REPONSE_SUPPRIMER_DATASET:
+                return
+
+            supprimer_dataset_local(repo_dataset)
+            dataset = creer_dataset(robot, repo_dataset)
 
         (
             teleop_action_processor,
@@ -147,10 +185,16 @@ def enregistrer_dataset() -> None:
 
         episode = 0
 
+        for secondes_restantes in range(DELAI_AVANT_DEMARRAGE_S, 0, -1):
+            print(f"Démarrage dans {secondes_restantes} s   ", end="\r", flush=True)
+            sleep(1)
+
+        print("Démarrage maintenant.        ")
+
         with VideoEncodingManager(dataset):
             while episode < NB_EPISODES and not events["stop_recording"]:
-                print(f"Épisode {episode + 1}/{NB_EPISODES}")
-                utilitaires.jouer_debut_episode()
+                print(f"----- Épisode {episode + 1}/{NB_EPISODES} -----")
+                utilitaires.jouer_son_debut_episode()
 
                 record_loop(
                     robot=robot,
@@ -162,11 +206,14 @@ def enregistrer_dataset() -> None:
                     teleop=teleop,
                     dataset=dataset,
                     control_time_s=DUREE_EPISODE_S,
-                    single_task=TACHE,
+                    single_task=tache,
                     display_data=False,
                 )
 
-                utilitaires.jouer_fin_episode()
+                if episode in CHANGEMENTS_EPISODES:
+                    utilitaires.jouer_son_fin_episode_avec_changement()
+                else:
+                    utilitaires.jouer_son_fin_episode()
 
                 if events["rerecord_episode"]:
                     events["rerecord_episode"] = False
@@ -175,7 +222,7 @@ def enregistrer_dataset() -> None:
 
                     if not events["stop_recording"]:
                         print("Réinitialisation avant reprise")
-                        utilitaires.jouer_bip_reinitialisation()
+                        utilitaires.jouer_son_reinitialisation()
 
                         record_loop(
                             robot=robot,
@@ -186,7 +233,7 @@ def enregistrer_dataset() -> None:
                             robot_observation_processor=robot_observation_processor,
                             teleop=teleop,
                             control_time_s=DUREE_REINITIALISATION_S,
-                            single_task=TACHE,
+                            single_task=tache,
                             display_data=False,
                         )
 
@@ -197,7 +244,7 @@ def enregistrer_dataset() -> None:
 
                 if episode < NB_EPISODES and not events["stop_recording"]:
                     print("Réinitialisation")
-                    utilitaires.jouer_bip_reinitialisation()
+                    utilitaires.jouer_son_reinitialisation()
 
                     record_loop(
                         robot=robot,
@@ -208,7 +255,7 @@ def enregistrer_dataset() -> None:
                         robot_observation_processor=robot_observation_processor,
                         teleop=teleop,
                         control_time_s=DUREE_REINITIALISATION_S,
-                        single_task=TACHE,
+                        single_task=tache,
                         display_data=False,
                     )
 
@@ -226,7 +273,7 @@ def enregistrer_dataset() -> None:
             robot.disconnect()        
 
     print("Terminé")
-    utilitaires.jouer_bips_fin_cycle()
+    utilitaires.jouer_son_fin_entrainement()
 
 
 if __name__ == "__main__":
