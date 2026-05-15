@@ -91,11 +91,22 @@ def jouer_son_reinitialisation() -> None:
     jouer_bip(FREQUENCE_BIP_LA4_HZ, DUREE_BIP_MOYEN_S)
 
 
+def jouer_son_annulation_episode() -> None:
+    """
+    Jouer un motif grave-aigu-grave pour signaler l'annulation d'un épisode.
+    """
+
+    jouer_bip(FREQUENCE_BIP_LA4_HZ, DUREE_BIP_COURT_S)
+    sleep(PAUSE_ENTRE_BIPS_S)
+    jouer_bip(FREQUENCE_BIP_LA6_HZ, DUREE_BIP_COURT_S)
+    sleep(PAUSE_ENTRE_BIPS_S)
+    jouer_bip(FREQUENCE_BIP_LA4_HZ, DUREE_BIP_COURT_S)
+
+
 def jouer_son_fin_entrainement() -> None:
     """
     Jouer un très long bip grave pour signaler la fin complète du script.
     """
 
     jouer_bip(FREQUENCE_BIP_LA4_HZ, DUREE_BIP_LONG_S)
-
 

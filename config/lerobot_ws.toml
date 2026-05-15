@@ -1,0 +1,26 @@
+[materiel.robot]
+port_leader = "/dev/ttyACM0"
+port_follower = "/dev/ttyACM1"
+id_leader = "bras_leader"
+id_follower = "bras_suiveur"
+
+[materiel.camera_globale]
+nom = "globale"
+chemin = "/dev/video2"
+largeur = 640
+hauteur = 480
+fps = 30
+fourcc = "MJPG"
+
+[enregistrement]
+delai_avant_demarrage_s = 10
+
+[enregistrement.dataset]
+repo_id_defaut = "taubore/deplacer_cube_v04_lot"
+tache_defaut = "Pousser latéralement le cube noir vers le carré blanc."
+nb_episodes = 5
+duree_episode_s = 7
+duree_reinitialisation_s = 4
+use_videos = true
+image_writer_threads = 4
+push_to_hub = false

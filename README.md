@@ -1,6 +1,8 @@
 # LeRobot
 
-Ce dépôt est un environnement d'apprentissage pour ma montée en compétence avec le projet LeRobot de Hugging Face. Il contient également un petit package local utilisé par ces scripts (commun).
+Ce dépôt est un environnement d'apprentissage pour ma montée en compétence avec le projet
+LeRobot de Hugging Face. Il contient également un petit package local utilisé par ces scripts
+(`commun`).
 
 ## État du projet
 
@@ -26,6 +28,7 @@ sudo apt install v4l-utils
 ## Structure (versionné)
 
 - `commun/`     : fonctions réutilisables par plusieurs scripts.
+- `config/`     : configuration locale commune des scripts.
 - `outils/`     : scripts qui soutienne mon processus d'utilisation de LeRobot.
 - `exemples/`   : scripts pédagogiques conservés comme références.
 - `essais/`     : scripts exploratoires ou temporaires.
@@ -34,8 +37,26 @@ sudo apt install v4l-utils
 
 ## Structure (non versionné)
 
-- `datasets/`            : datasets officialisés.
+- `~/.cache/huggingface/lerobot/{repo_id}` : lots bruts d'enregistrement LeRobot.
+- `datasets/`            : datasets officialisés après validation ou fusion de lots.
 - `captures/`            : pour les différentes fichier capturés (ex. .png).
 - `lerobot_ws.egg.info/` : généré par pip install -e . pour le package "commun".
 - `outputs/`             : les policies sont générés ici.
 
+## Enregistrement de datasets
+
+Le script `outils/enregistrer_dataset_lerobot.py` sert à enregistrer des lots bruts avec un
+SO-101 leader, un SO-101 follower et une caméra globale Arducam.
+
+Les ports, identifiants de bras, paramètres caméra et valeurs par défaut d'enregistrement sont
+centralisés dans `config/lerobot_ws.toml`.
+
+Par défaut, il laisse LeRobot stocker le lot dans son cache local :
+`~/.cache/huggingface/lerobot/{repo_id}`. Il ne pousse pas le dataset vers Hugging Face Hub. Les
+datasets validés ou fusionnés seulement doivent être placés dans `datasets/`.
+
+Contrôles pendant l'enregistrement :
+
+- flèche droite : accepter l'épisode ou passer à l'étape suivante ;
+- flèche gauche : annuler et recommencer l'épisode courant ;
+- `ESC` : arrêter la session, encoder les vidéos et terminer proprement.
