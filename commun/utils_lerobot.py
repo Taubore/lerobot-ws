@@ -1,5 +1,9 @@
+'''
+Regroupe un ensemble de fonctions utilitaires propres à ce projet. C'est à dire utile pour plus
+d'un script, mais avec des spécificités à ce projet.
+'''
+
 import subprocess
-import readline
 from time import sleep
 
 FREQUENCE_BIP_LA6_HZ = 1760
@@ -10,20 +14,6 @@ DUREE_BIP_COURT_S = 0.08
 DUREE_BIP_MOYEN_S = 0.35
 DUREE_BIP_LONG_S = 1.50
 PAUSE_ENTRE_BIPS_S = 0.08
-
-
-def saisir_avec_texte_defaut(invite: str, texte_defaut: str) -> str:
-    """
-    Saisir un texte en préremplissant la ligne avec une valeur par défaut.
-    """
-
-    readline.set_startup_hook(lambda: readline.insert_text(texte_defaut))
-
-    try:
-        return input(invite)
-
-    finally:
-        readline.set_startup_hook()
 
 
 def jouer_bip(frequence_hz: int, duree_s: float) -> None:

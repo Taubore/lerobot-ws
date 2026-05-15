@@ -45,6 +45,15 @@
 - Messages lisibles.
 - Déconnexion propre avec `finally`.
 
+# Architecture
+
+- L'architecture demeure simple, se référer au README.md pour la structure et s'assurer de la
+respecter lors d'ajout de nouveaux fichiers sources.
+- Si une évolution d'architecture apparaît nécessaire, demander une confirmation avant.
+- Si une fonction est d'un usage générique au delà de ce projet : commun/utils.py
+- Si une fonction est d'un usage générique pour ce projet : commun/utils_lerobot.py
+- En cas de doute sur le caractère générique d'une nouvelle fonction à créer, le demander.
+
 # Exécution et essais du code
 
 - Ne pas lancer Python avec /usr/bin/python3 qui échouera. 

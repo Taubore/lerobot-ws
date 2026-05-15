@@ -4,7 +4,7 @@ Ce dépôt est un environnement d'apprentissage pour ma montée en compétence a
 
 ## État du projet
 
-En développement, actuellement au tout début.
+En développement.
 
 ## Installation locale du projet
 
@@ -23,40 +23,19 @@ Pour les scripts qui configurent une caméra USB avec V4L2, installer aussi les 
 sudo apt install v4l-utils
 ```
 
-## Utilisation
-
-Les scripts stables sont dans `references/`. Les scripts de dataset initialisent l'Arducam avant
-l'ouverture par LeRobot afin de demander explicitement le mode vidéo, par exemple MJPG
-1280 x 720 à 15 FPS.
-
-Le script `references/dataset/inspecter_dataset_pilote.py` vérifie les épisodes, les durées,
-les champs essentiels et les dimensions des données principales avant un premier entraînement.
-
-Les configurations de débogage VSCode dans `.vscode/launch.json` demandent seulement le nom court du
-dataset et le nombre d'étapes au lancement. L'identifiant Hugging Face est construit avec le préfixe
-`taubore/`, tandis que les chemins locaux utilisent le nom court pour éviter les ambiguïtés liées aux
-identifiants contenant un `/`.
-
 ## Structure (versionné)
 
-- commun/               → diverses fonctions pouvant être réutilisées
-- brouillons/           → code non nettoyé et temporaire
-- datasets/             → jeux de données
-- essais/               → apprentissage progressif et tests temporaires
-- notes/                → explications, observations, commandes utiles
-- references/           → scripts propres, stables, pédagogiques
+- `commun/`     : fonctions réutilisables par plusieurs scripts.
+- `outils/`     : scripts qui soutienne mon processus d'utilisation de LeRobot.
+- `exemples/`   : scripts pédagogiques conservés comme références.
+- `essais/`     : scripts exploratoires ou temporaires.
+- `notes/`      : observations, jalons et commandes utiles.
+- `evaluations/`: résultats d’évaluation manuels ou résumés.
 
 ## Structure (non versionné)
 
-- captures/             → pour les différentes fichier capturés (ex. .png)
-- lerobot_ws.egg.info/  → généré par pip install -e . pour le package "commun" 
-- outputs/              → les policies sont générés ici
+- `datasets/`            : datasets officialisés.
+- `captures/`            : pour les différentes fichier capturés (ex. .png).
+- `lerobot_ws.egg.info/` : généré par pip install -e . pour le package "commun".
+- `outputs/`             : les policies sont générés ici.
 
-# Critères pour qu’un script aille dans le dossier references/
-
-- Il fonctionne
-- Il a un objectif unique
-- Il ne contient pas de vieux essais commentés
-- Il affiche clairement ce qu’il fait
-- Il se termine proprement
-- Il peut être relu dans trois mois sans devoir deviner son intention

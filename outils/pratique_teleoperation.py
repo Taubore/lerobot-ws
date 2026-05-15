@@ -5,7 +5,8 @@ Téléopération d'un bras LeRobot follower SO-101 à partir d'un leader SO-101
 Objectif:
 Reproduire en temps réel les mouvements effectués sur un bras leader SO-101 par un bras follower 
 SO-101. On vise un code très simple et didactique. Donc pas de correction des mouvements, ni de 
-filtrage, ni de gestion des erreurs.
+filtrage, ni de gestion des erreurs. Utile pour pratiquer un mouvement avant de produire 
+des enregistrements de datasets.
 
 Hypothèses importantes:
 - Le bras leader est connecté et opérationnel (calibré)
