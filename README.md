@@ -68,3 +68,9 @@ Contrôles pendant l'enregistrement :
 Par défaut, le script masque les sorties verbeuses de LeRobot et de l'encodeur vidéo pendant
 l'enregistrement. Pour les réafficher lors d'un diagnostic, passer la constante `VERBOSE` à
 `True` dans `outils/enregistrer_dataset.py`.
+
+## Vérification de datasets
+
+Le script `outils/verifier_dataset.py` charge un lot ou un dataset avec `LeRobotDataset` et
+affiche un résumé court. Si la vérification réussit, il écrit aussi un manifeste Markdown dans
+le dossier du dataset vérifié, avec le suffixe `_manifest.md`.

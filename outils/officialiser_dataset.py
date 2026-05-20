@@ -8,6 +8,9 @@ from pathlib import Path
 
 from lerobot.datasets import LeRobotDataset
 
+from commun import config_lerobot
+from commun import utils
+
 
 CHOIX_ANNULER = "1"
 CHOIX_SUPPRIMER = "2"
@@ -17,12 +20,12 @@ RACINE_CACHE_LEROBOT = Path.home() / ".cache" / "huggingface" / "lerobot"
 RACINE_DATASETS_OFFICIELS = Path("/home/taubore/Projets/lerobot/lerobot-ws/datasets")
 
 
-def demander_repo_id_base() -> str:
+def demander_repo_id_base(repo_id_defaut: str) -> str:
     """
     Demander le repo_id de base.
     """
 
-    return input("Repo_id de base : ").strip()
+    return utils.saisir_avec_texte_defaut("Repo_id de base : ", repo_id_defaut).strip()
 
 
 def demander_nombre_lots() -> int:
@@ -38,12 +41,12 @@ def demander_nombre_lots() -> int:
     return int(texte)
 
 
-def demander_repo_id_final() -> str:
+def demander_repo_id_final(repo_id_defaut: str) -> str:
     """
     Demander le repo_id final officialisé.
     """
 
-    return input("Repo_id final  : ").strip()
+    return utils.saisir_avec_texte_defaut("Repo_id final  : ", repo_id_defaut).strip()
 
 
 def valider_repo_id(repo_id: str) -> None:
@@ -73,9 +76,9 @@ def construire_repo_ids_sources(repo_id_base: str, nombre_lots: int) -> list[str
         return [repo_id_base]
 
     if nombre_lots == 1:
-        return [f"{repo_id_base}_001"]
+        return [f"{repo_id_base}_lot01"]
 
-    return [f"{repo_id_base}_{index:03d}" for index in range(1, nombre_lots + 1)]
+    return [f"{repo_id_base}_lot{index:02d}" for index in range(1, nombre_lots + 1)]
 
 
 def chemin_cache_lerobot(repo_id: str) -> Path:
@@ -141,15 +144,21 @@ def fusionner_datasets(repo_ids_sources: list[str], repo_id_final: str) -> None:
     Fusionner plusieurs datasets via l'outil officiel lerobot-edit-dataset.
     """
 
+    racines_sources = [str(chemin_cache_lerobot(repo_id)) for repo_id in repo_ids_sources]
+    destination = chemin_dataset_officiel(repo_id_final)
+
     commande = [
         "lerobot-edit-dataset",
-        "--repo-id",
+        "--new_repo_id",
         repo_id_final,
-        "--local-dir",
-        str(RACINE_DATASETS_OFFICIELS),
+        "--new_root",
+        str(destination),
+        "--operation.type",
         "merge",
-        "--src-repo-ids",
-        *repo_ids_sources,
+        "--operation.repo_ids",
+        repr(repo_ids_sources),
+        "--operation.roots",
+        repr(racines_sources),
     ]
 
     subprocess.run(commande, check=True)
@@ -182,9 +191,12 @@ def main() -> None:
     print("Officialisation du dataset LeRobot\n")
 
     try:
-        repo_id_base = demander_repo_id_base()
+        config = config_lerobot.charger_config()
+        repo_id_defaut = config.enregistrement.dataset.repo_id_defaut
+
+        repo_id_base = demander_repo_id_base(repo_id_defaut)
         nombre_lots = demander_nombre_lots()
-        repo_id_final = demander_repo_id_final()
+        repo_id_final = demander_repo_id_final(repo_id_defaut)
 
         valider_repo_id(repo_id_base)
         valider_repo_id(repo_id_final)
