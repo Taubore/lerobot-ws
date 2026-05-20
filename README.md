@@ -45,15 +45,19 @@ sudo apt install v4l-utils
 
 ## Enregistrement de datasets
 
-Le script `outils/enregistrer_dataset_lerobot.py` sert à enregistrer des lots bruts avec un
-SO-101 leader, un SO-101 follower et une caméra globale Arducam.
+Le script `outils/enregistrer_dataset.py` sert à enregistrer des lots bruts avec un SO-101 leader,
+un SO-101 follower et une caméra globale Arducam.
 
 Les ports, identifiants de bras, paramètres caméra et valeurs par défaut d'enregistrement sont
 centralisés dans `config/lerobot_ws.toml`.
 
-Par défaut, il laisse LeRobot stocker le lot dans son cache local :
-`~/.cache/huggingface/lerobot/{repo_id}`. Il ne pousse pas le dataset vers Hugging Face Hub. Les
-datasets validés ou fusionnés seulement doivent être placés dans `datasets/`.
+Il laisse LeRobot stocker le lot dans son cache local :
+`~/.cache/huggingface/lerobot/{repo_id}`. Il ne pousse pas le dataset vers Hugging Face Hub et
+refuse de démarrer si `push_to_hub = true`. Les datasets validés ou fusionnés seulement doivent
+être placés dans `datasets/`.
+
+Si un lot existe déjà dans le cache, le script permet d'annuler, de supprimer le lot existant ou
+de saisir un nouveau nom de lot.
 
 Contrôles pendant l'enregistrement :
 
