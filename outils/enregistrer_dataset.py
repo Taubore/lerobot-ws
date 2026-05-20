@@ -42,6 +42,7 @@ CHOIX_ANNULER = "1"
 CHOIX_SUPPRIMER = "2"
 CHOIX_NOUVEAU_NOM = "3"
 DELAI_APRES_ANNULATION_S = 2.0
+CHEMIN_CONFIG = Path(__file__).resolve().parent / "config_lerobot_ws.toml"
 VERBOSE = False
 
 
@@ -325,12 +326,12 @@ def enregistrer_dataset() -> None:
     Enregistrer les épisodes d'un lot brut dans le cache LeRobot.
     """
 
-    config = config_lerobot.charger_config()
+    config = config_lerobot.charger_config(CHEMIN_CONFIG)
     dataset_config = config.enregistrement.dataset
     camera = config.materiel.camera_globale
 
     if dataset_config.push_to_hub:
-        raise ValueError("Ce script exige `push_to_hub = false` dans `config/lerobot_ws.toml`.")
+        raise ValueError("Ce script exige `push_to_hub = false` dans `config_lerobot_ws.toml`.")
 
     repo_id = choisir_repo_dataset(config)
 

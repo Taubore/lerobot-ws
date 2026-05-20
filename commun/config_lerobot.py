@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 import tomllib
 
-CHEMIN_CONFIG_DEFAUT = Path(__file__).resolve().parents[1] / "config" / "lerobot_ws.toml"
+CHEMIN_CONFIG_DEFAUT = Path(__file__).resolve().parents[1] / "outils" / "config_lerobot_ws.toml"
 
 
 @dataclass(frozen=True)

@@ -28,7 +28,6 @@ sudo apt install v4l-utils
 ## Structure (versionné)
 
 - `commun/`     : fonctions réutilisables par plusieurs scripts.
-- `config/`     : configuration locale commune des scripts.
 - `outils/`     : scripts qui soutienne mon processus d'utilisation de LeRobot.
 - `exemples/`   : scripts pédagogiques conservés comme références.
 - `essais/`     : scripts exploratoires ou temporaires.
@@ -49,7 +48,7 @@ Le script `outils/enregistrer_dataset.py` sert à enregistrer des lots bruts ave
 un SO-101 follower et une caméra globale Arducam.
 
 Les ports, identifiants de bras, paramètres caméra et valeurs par défaut d'enregistrement sont
-centralisés dans `config/lerobot_ws.toml`.
+centralisés dans `outils/config_lerobot_ws.toml`.
 
 Il laisse LeRobot stocker le lot dans son cache local :
 `~/.cache/huggingface/lerobot/{repo_id}`. Il ne pousse pas le dataset vers Hugging Face Hub et

@@ -14,6 +14,7 @@ from commun import utils
 
 
 RACINE_CACHE_LEROBOT = Path.home() / ".cache" / "huggingface" / "lerobot"
+CHEMIN_CONFIG = Path(__file__).resolve().parent / "config_lerobot_ws.toml"
 PREFIXE_CAMERA = "observation.images."
 PREFIXE_CAMERA_VIDEO = "observation.videos."
 TEXTE_NON_DISPONIBLE = "Non disponible"
@@ -294,7 +295,7 @@ def main() -> None:
     Point d'entrée du script.
     """
 
-    config = config_lerobot.charger_config()
+    config = config_lerobot.charger_config(CHEMIN_CONFIG)
     repo_id = demander_repo_id(config.enregistrement.dataset.repo_id_defaut)
 
     try:

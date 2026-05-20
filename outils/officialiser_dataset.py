@@ -18,6 +18,7 @@ CHOIX_AUTRE_NOM = "3"
 
 RACINE_CACHE_LEROBOT = Path.home() / ".cache" / "huggingface" / "lerobot"
 RACINE_DATASETS_OFFICIELS = Path("/home/taubore/Projets/lerobot/lerobot-ws/datasets")
+CHEMIN_CONFIG = Path(__file__).resolve().parent / "config_lerobot_ws.toml"
 
 
 def demander_repo_id_base(repo_id_defaut: str) -> str:
@@ -191,7 +192,7 @@ def main() -> None:
     print("Officialisation du dataset LeRobot\n")
 
     try:
-        config = config_lerobot.charger_config()
+        config = config_lerobot.charger_config(CHEMIN_CONFIG)
         repo_id_defaut = config.enregistrement.dataset.repo_id_defaut
 
         repo_id_base = demander_repo_id_base(repo_id_defaut)
