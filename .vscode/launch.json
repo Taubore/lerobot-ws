@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "LeRobot - entraîner ACT dataset pilote",
+            "name": "LeRobot - entraîner ACT",
             "type": "debugpy",
             "request": "launch",
             "module": "lerobot.scripts.lerobot_train",
@@ -27,7 +27,7 @@
             ]
         },
         {
-            "name": "LeRobot - évaluer ACT dataset pilote",
+            "name": "LeRobot - évaluer ACT",
             "type": "debugpy",
             "request": "launch",
             "module": "lerobot.scripts.lerobot_rollout",
@@ -40,7 +40,7 @@
                 "--robot.port=/dev/ttyACM1",
                 "--robot.id=bras_suiveur",
                 "--robot.cameras={globale: {type: opencv, index_or_path: /dev/video2, width: 640, height: 480, fps: 30, fourcc: MJPG}}",
-                "--task=Pousser le cube noir dans le carré blanc.",
+                "--task=${input:tacheEvaluation}",
                 "--duration=5",
                 "--display_data=false",
             ]
@@ -50,14 +50,20 @@
         {
             "id": "datasetNom",
             "type": "promptString",
-            "description": "Nom court du dataset Hugging Face",
+            "description": "Nom du dataset",
             "default": "deplacer_cube_v04"
+        },
+        {
+            "id": "tacheEvaluation",
+            "type": "promptString",
+            "description": "Tâche à évaluer",
+            "default": "Pousser le cube noir dans le carré blanc."
         },
         {
             "id": "stepsEntrainement",
             "type": "promptString",
             "description": "Nombre d'étapes d'entraînement",
             "default": "5000"
-        }
+        },
     ]
 }
