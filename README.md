@@ -64,3 +64,7 @@ Contrôles pendant l'enregistrement :
 - flèche droite : accepter l'épisode ou passer à l'étape suivante ;
 - flèche gauche : annuler et recommencer l'épisode courant ;
 - `ESC` : arrêter la session, encoder les vidéos et terminer proprement.
+
+Par défaut, le script masque les sorties verbeuses de LeRobot et de l'encodeur vidéo pendant
+l'enregistrement. Pour les réafficher lors d'un diagnostic, passer la constante `VERBOSE` à
+`True` dans `outils/enregistrer_dataset.py`.

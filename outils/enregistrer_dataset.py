@@ -8,12 +8,14 @@ Les étapes d'inspection, d'officialisation, de fusion et d'entraînement sont v
 laissées à d'autres scripts.
 """
 
+import os
 import shutil
 import sys
 import termios
+from contextlib import contextmanager
 from pathlib import Path
 from time import sleep
-from typing import Any
+from typing import Any, Iterator
 
 from lerobot.cameras import CameraConfig
 from lerobot.cameras.opencv import OpenCVCameraConfig
@@ -39,7 +41,69 @@ from commun import utils_lerobot
 CHOIX_ANNULER = "1"
 CHOIX_SUPPRIMER = "2"
 CHOIX_NOUVEAU_NOM = "3"
-DELAI_APRES_ANNULATION_S = 1.0
+DELAI_APRES_ANNULATION_S = 2.0
+VERBOSE = False
+
+
+@contextmanager
+def sortie_lerobot_discrete() -> Iterator[None]:
+    """
+    Masquer les sorties verbeuses de LeRobot et de ses encodeurs natifs.
+    """
+
+    if VERBOSE:
+        yield
+        return
+
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+    stdout = sys.stdout.fileno()
+    stderr = sys.stderr.fileno()
+    stdout_sauvegarde = os.dup(stdout)
+    stderr_sauvegarde = os.dup(stderr)
+
+    with open(os.devnull, "w", encoding="utf-8") as sortie_nulle:
+        try:
+            os.dup2(sortie_nulle.fileno(), stdout)
+            os.dup2(sortie_nulle.fileno(), stderr)
+            yield
+
+        finally:
+            sys.stdout.flush()
+            sys.stderr.flush()
+            os.dup2(stdout_sauvegarde, stdout)
+            os.dup2(stderr_sauvegarde, stderr)
+            os.close(stdout_sauvegarde)
+            os.close(stderr_sauvegarde)
+
+
+@contextmanager
+def encodage_video_discret(dataset: LeRobotDataset) -> Iterator[None]:
+    """
+    Gérer l'encodage vidéo en masquant seulement les journaux internes.
+    """
+
+    gestionnaire = VideoEncodingManager(dataset)
+
+    with sortie_lerobot_discrete():
+        gestionnaire.__enter__()
+
+    try:
+        yield
+
+    except BaseException:
+        type_erreur, erreur, trace = sys.exc_info()
+
+        with sortie_lerobot_discrete():
+            erreur_masquee = gestionnaire.__exit__(type_erreur, erreur, trace)
+
+        if not erreur_masquee:
+            raise
+
+    else:
+        with sortie_lerobot_discrete():
+            gestionnaire.__exit__(None, None, None)
 
 
 def desactiver_echo_terminal() -> list[Any] | None:
@@ -286,7 +350,7 @@ def enregistrer_dataset() -> None:
 
     robot = creer_robot(config)
     teleop = creer_teleop(config)
-    dataset = None
+    dataset: LeRobotDataset | None = None
     listener = None
     attributs_terminal = None
     episodes_sauvegardes = 0
@@ -296,7 +360,9 @@ def enregistrer_dataset() -> None:
         robot.connect()
         teleop.connect()
         listener, events = init_keyboard_listener()
-        dataset = creer_dataset(robot, config, repo_id)
+        with sortie_lerobot_discrete():
+            dataset = creer_dataset(robot, config, repo_id)
+        assert dataset is not None
 
         (
             teleop_action_processor,
@@ -306,7 +372,7 @@ def enregistrer_dataset() -> None:
 
         attendre_demarrage(config.enregistrement.delai_avant_demarrage_s)
 
-        with VideoEncodingManager(dataset):
+        with encodage_video_discret(dataset):
             while (
                 episodes_sauvegardes < dataset_config.nb_episodes
                 and not events["stop_recording"]
@@ -314,19 +380,20 @@ def enregistrer_dataset() -> None:
                 print(f"Épisode {episodes_sauvegardes + 1}/{dataset_config.nb_episodes}")
                 utils_lerobot.jouer_son_debut_episode()
 
-                record_loop(
-                    robot=robot,
-                    events=events,
-                    fps=camera.fps,
-                    teleop_action_processor=teleop_action_processor,
-                    robot_action_processor=robot_action_processor,
-                    robot_observation_processor=robot_observation_processor,
-                    teleop=teleop,
-                    dataset=dataset,
-                    control_time_s=int(dataset_config.duree_episode_s),
-                    single_task=tache,
-                    display_data=False,
-                )
+                with sortie_lerobot_discrete():
+                    record_loop(
+                        robot=robot,
+                        events=events,
+                        fps=camera.fps,
+                        teleop_action_processor=teleop_action_processor,
+                        robot_action_processor=robot_action_processor,
+                        robot_observation_processor=robot_observation_processor,
+                        teleop=teleop,
+                        dataset=dataset,
+                        control_time_s=int(dataset_config.duree_episode_s),
+                        single_task=tache,
+                        display_data=False,
+                    )
 
                 if events["rerecord_episode"]:
                     events["rerecord_episode"] = False
@@ -339,6 +406,39 @@ def enregistrer_dataset() -> None:
                     if not events["stop_recording"]:
                         utils_lerobot.jouer_son_reinitialisation()
 
+                        with sortie_lerobot_discrete():
+                            record_loop(
+                                robot=robot,
+                                events=events,
+                                fps=camera.fps,
+                                teleop_action_processor=teleop_action_processor,
+                                robot_action_processor=robot_action_processor,
+                                robot_observation_processor=robot_observation_processor,
+                                teleop=teleop,
+                                control_time_s=int(dataset_config.duree_reinitialisation_s),
+                                single_task=tache,
+                                display_data=False,
+                            )
+
+                    continue
+
+                utils_lerobot.jouer_son_fin_episode()
+                print("Épisode terminé. Sauvegarde en cours...")
+
+                with sortie_lerobot_discrete():
+                    dataset.save_episode()
+                episodes_sauvegardes += 1
+
+                print(f"Épisode sauvegardé : {episodes_sauvegardes}/{dataset_config.nb_episodes}")
+
+                if (
+                    episodes_sauvegardes < dataset_config.nb_episodes
+                    and not events["stop_recording"]
+                ):
+                    print("Réinitialisation")
+                    utils_lerobot.jouer_son_reinitialisation()
+
+                    with sortie_lerobot_discrete():
                         record_loop(
                             robot=robot,
                             events=events,
@@ -352,38 +452,8 @@ def enregistrer_dataset() -> None:
                             display_data=False,
                         )
 
-                    continue
-
-                utils_lerobot.jouer_son_fin_episode()
-                print("Épisode terminé. Sauvegarde en cours...")
-
-                dataset.save_episode()
-                episodes_sauvegardes += 1
-
-                print(f"Épisode sauvegardé : {episodes_sauvegardes}/{dataset_config.nb_episodes}")
-
-                if (
-                    episodes_sauvegardes < dataset_config.nb_episodes
-                    and not events["stop_recording"]
-                ):
-                    print("Réinitialisation")
-                    utils_lerobot.jouer_son_reinitialisation()
-
-                    record_loop(
-                        robot=robot,
-                        events=events,
-                        fps=camera.fps,
-                        teleop_action_processor=teleop_action_processor,
-                        robot_action_processor=robot_action_processor,
-                        robot_observation_processor=robot_observation_processor,
-                        teleop=teleop,
-                        control_time_s=int(dataset_config.duree_reinitialisation_s),
-                        single_task=tache,
-                        display_data=False,
-                    )
-
             if episodes_sauvegardes == dataset_config.nb_episodes:
-                utils_lerobot.jouer_son_fin_entrainement()
+                utils_lerobot.jouer_son_fin_dataset()
 
     except KeyboardInterrupt:
         print("Interruption clavier.")
@@ -396,7 +466,8 @@ def enregistrer_dataset() -> None:
 
         if dataset is not None:
             try:
-                dataset.finalize()
+                with sortie_lerobot_discrete():
+                    dataset.finalize()
 
             except Exception as erreur:  # noqa: BLE001 - la déconnexion reste prioritaire.
                 print(f"ATTENTION : finalisation incomplète ({erreur})")
