@@ -23,26 +23,7 @@
                 "--save_freq=1000",
                 "--log_freq=50",
                 "--wandb.enable=false",
-                "--policy.push_to_hub=false",
-            ]
-        },
-        {
-            "name": "LeRobot - évaluer ACT",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "lerobot.scripts.lerobot_rollout",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "args": [
-                "--strategy.type=base",
-                "--policy.path=${workspaceFolder}/outputs/train/${input:datasetNom}_${input:stepsEntrainement}/checkpoints/last/pretrained_model",
-                "--robot.type=so101_follower",
-                "--robot.port=/dev/ttyACM1",
-                "--robot.id=bras_suiveur",
-                "--robot.cameras={globale: {type: opencv, index_or_path: /dev/video2, width: 640, height: 480, fps: 30, fourcc: MJPG}}",
-                "--task=${input:tacheEvaluation}",
-                "--duration=5",
-                "--display_data=false",
+                "--policy.push_to_hub=false"
             ]
         }
     ],
@@ -54,16 +35,10 @@
             "default": "cube_vers_zone_v001_final"
         },
         {
-            "id": "tacheEvaluation",
-            "type": "promptString",
-            "description": "Tâche à évaluer",
-            "default": "Pousser le cube noir vers le carré blanc."
-        },
-        {
             "id": "stepsEntrainement",
             "type": "promptString",
             "description": "Nombre d'étapes d'entraînement",
             "default": "5000"
-        },
+        }
     ]
 }

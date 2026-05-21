@@ -68,6 +68,20 @@ Par défaut, le script masque les sorties verbeuses de LeRobot et de l'encodeur 
 l'enregistrement. Pour les réafficher lors d'un diagnostic, passer la constante `VERBOSE` à
 `True` dans `outils/enregistrer_dataset.py`.
 
+## Exécution de politiques
+
+Le script `outils/executer_politique.py` permet de tester plusieurs fois une politique
+entraînée sans relancer une configuration VSCode. Il demande le nom d'un entraînement local sous
+`/home/taubore/Projets/lerobot/lerobot-ws/outputs/train`, charge le checkpoint
+`checkpoints/last/pretrained_model`, puis lance un essai à chaque appui sur `Espace`.
+
+```bash
+python lerobot-ws/outils/executer_politique.py
+```
+
+Les paramètres de workspace, entraînement, matériel, caméra, politique par défaut, tâche et durée
+sont lus dans `outils/config_lerobot_ws.toml` via `commun/config_lerobot.py`.
+
 ## Vérification de datasets
 
 Le script `outils/verifier_dataset.py` charge un lot ou un dataset avec `LeRobotDataset` et

@@ -56,6 +56,47 @@ class ConfigDatasetEnregistrement:
 
 
 @dataclass(frozen=True)
+class ConfigWorkspace:
+    """
+    Configuration des chemins principaux du workspace local.
+    """
+
+    racine: Path
+
+
+@dataclass(frozen=True)
+class ConfigEntrainement:
+    """
+    Configuration commune aux entraînements locaux.
+    """
+
+    dossier_sortie: Path
+
+    def dossier_sortie_absolu(self, workspace: ConfigWorkspace) -> Path:
+        """
+        Retourner le dossier d'entraînement en chemin absolu.
+        """
+
+        if self.dossier_sortie.is_absolute():
+            return self.dossier_sortie
+
+        return workspace.racine / self.dossier_sortie
+
+
+@dataclass(frozen=True)
+class ConfigExecutionPolitique:
+    """
+    Configuration pour exécuter une politique entraînée sur le robot réel.
+    """
+
+    strategie: str
+    nom_politique_defaut: str
+    duree_s: float
+    tache_defaut: str
+    display_data: bool
+
+
+@dataclass(frozen=True)
 class ConfigEnregistrement:
     """
     Configuration de la session d'enregistrement.
@@ -81,8 +122,11 @@ class ConfigLeRobotWs:
     Configuration complète du workspace LeRobot.
     """
 
+    workspace: ConfigWorkspace
     materiel: ConfigMateriel
     enregistrement: ConfigEnregistrement
+    entrainement: ConfigEntrainement
+    execution_politique: ConfigExecutionPolitique
 
 
 def charger_config(chemin: Path = CHEMIN_CONFIG_DEFAUT) -> ConfigLeRobotWs:
@@ -94,8 +138,19 @@ def charger_config(chemin: Path = CHEMIN_CONFIG_DEFAUT) -> ConfigLeRobotWs:
         donnees = tomllib.load(fichier)
 
     return ConfigLeRobotWs(
+        workspace=_charger_workspace(donnees),
         materiel=_charger_materiel(donnees),
         enregistrement=_charger_enregistrement(donnees),
+        entrainement=_charger_entrainement(donnees),
+        execution_politique=_charger_execution_politique(donnees),
+    )
+
+
+def _charger_workspace(donnees: dict[str, Any]) -> ConfigWorkspace:
+    workspace = donnees["workspace"]
+
+    return ConfigWorkspace(
+        racine=Path(workspace["racine"]),
     )
 
 
@@ -119,6 +174,26 @@ def _charger_materiel(donnees: dict[str, Any]) -> ConfigMateriel:
             fps=camera["fps"],
             fourcc=camera["fourcc"],
         ),
+    )
+
+
+def _charger_entrainement(donnees: dict[str, Any]) -> ConfigEntrainement:
+    entrainement = donnees["entrainement"]
+
+    return ConfigEntrainement(
+        dossier_sortie=Path(entrainement["dossier_sortie"]),
+    )
+
+
+def _charger_execution_politique(donnees: dict[str, Any]) -> ConfigExecutionPolitique:
+    execution_politique = donnees["execution_politique"]
+
+    return ConfigExecutionPolitique(
+        strategie=execution_politique["strategie"],
+        nom_politique_defaut=execution_politique["nom_politique_defaut"],
+        duree_s=execution_politique["duree_s"],
+        tache_defaut=execution_politique["tache_defaut"],
+        display_data=execution_politique["display_data"],
     )
 
 
