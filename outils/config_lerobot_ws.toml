@@ -16,8 +16,8 @@ fourcc = "MJPG"
 delai_avant_demarrage_s = 10
 
 [enregistrement.dataset]
-repo_id_defaut = "taubore/deplacer_cube_v04"
-tache_defaut = "Pousser latéralement le cube noir vers le carré blanc."
+repo_id_defaut = "taubore/cube_vers_zone_v001_lotNN"
+tache_defaut = "Pousser le cube noir vers le carré blanc."
 nb_episodes = 5
 duree_episode_s = 7
 duree_reinitialisation_s = 4

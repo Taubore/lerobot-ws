@@ -51,13 +51,13 @@
             "id": "datasetNom",
             "type": "promptString",
             "description": "Nom du dataset",
-            "default": "deplacer_cube_v04"
+            "default": "cube_vers_zone_v001_final"
         },
         {
             "id": "tacheEvaluation",
             "type": "promptString",
             "description": "Tâche à évaluer",
-            "default": "Pousser le cube noir dans le carré blanc."
+            "default": "Pousser le cube noir vers le carré blanc."
         },
         {
             "id": "stepsEntrainement",
