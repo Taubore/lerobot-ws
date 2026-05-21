@@ -1,26 +1,118 @@
 """
-Vérifier minimalement un dataset brut LeRobot et écrire un manifeste humain.
+Vérifier un dataset LeRobot local et écrire un manifeste humain.
 """
 
-import re
+from dataclasses import dataclass
 from datetime import datetime
+from math import ceil
 from pathlib import Path
+from statistics import mean, median
 from typing import Any
 
 from lerobot.datasets import LeRobotDataset
+from lerobot.utils.constants import HF_LEROBOT_HOME
 
 from commun import config_lerobot
 from commun import utils
 
 
-RACINE_CACHE_LEROBOT = Path.home() / ".cache" / "huggingface" / "lerobot"
-CHEMIN_CONFIG = Path(__file__).resolve().parent / "config_lerobot_ws.toml"
+CHOIX_CACHE = "1"
+CHOIX_WORKSPACE = "2"
+MARGE_DUREE_EXECUTION_S = 0.5
 PREFIXE_CAMERA = "observation.images."
 PREFIXE_CAMERA_VIDEO = "observation.videos."
 TEXTE_NON_DISPONIBLE = "Non disponible"
 TEXTE_OUI = "Oui"
 TEXTE_NON = "Non"
-MOTIF_LOT = re.compile(r"_lot\d{2}$")
+
+
+@dataclass(frozen=True)
+class OrigineDataset:
+    """
+    Décrit une origine locale de dataset.
+    """
+
+    choix: str
+    libelle: str
+    racine: Path
+
+
+@dataclass(frozen=True)
+class EpisodeDuree:
+    """
+    Résumé de durée pour un épisode.
+    """
+
+    episode: int
+    nb_frames: int
+    duree_s: float
+
+
+@dataclass(frozen=True)
+class StatistiquesDurees:
+    """
+    Statistiques de durée des épisodes.
+    """
+
+    episodes: list[EpisodeDuree]
+    duree_min_s: float
+    duree_max_s: float
+    duree_moyenne_s: float
+    duree_mediane_s: float
+    suggestion_duree_s: int
+
+
+def charger_configuration() -> config_lerobot.ConfigLeRobotWs:
+    """
+    Charger la configuration du workspace.
+    """
+
+    return config_lerobot.charger_config()
+
+
+def racine_workspace_datasets(config: config_lerobot.ConfigLeRobotWs) -> Path:
+    """
+    Retourner la racine contenant les datasets officialisés.
+    """
+
+    return config.workspace.racine / "datasets"
+
+
+def demander_origine_dataset(config: config_lerobot.ConfigLeRobotWs) -> OrigineDataset:
+    """
+    Demander l'origine locale du dataset à vérifier.
+    """
+
+    origines = {
+        CHOIX_CACHE: OrigineDataset(
+            choix=CHOIX_CACHE,
+            libelle="cache LeRobot",
+            racine=HF_LEROBOT_HOME,
+        ),
+        CHOIX_WORKSPACE: OrigineDataset(
+            choix=CHOIX_WORKSPACE,
+            libelle="workspace",
+            racine=racine_workspace_datasets(config),
+        ),
+    }
+
+    print("Origine du dataset")
+    print("------------------")
+    print("1. cache LeRobot")
+    print("2. workspace")
+
+    try:
+        choix = input("Votre choix [1] : ").strip()
+    except EOFError:
+        choix = ""
+
+    if not choix:
+        choix = CHOIX_CACHE
+
+    if choix not in origines:
+        raise ValueError("Origine invalide : choisir 1 pour le cache ou 2 pour le workspace.")
+
+    return origines[choix]
 
 
 def demander_repo_id(repo_id_defaut: str) -> str:
@@ -28,10 +120,13 @@ def demander_repo_id(repo_id_defaut: str) -> str:
     Demander le repo_id à vérifier.
     """
 
-    return utils.saisir_avec_texte_defaut(
-        "Repo_id du dataset à vérifier : ",
-        repo_id_defaut,
-    ).strip()
+    try:
+        return utils.saisir_avec_texte_defaut(
+            "Repo_id du dataset à vérifier : ",
+            repo_id_defaut,
+        ).strip()
+    except EOFError:
+        return repo_id_defaut
 
 
 def valider_repo_id(repo_id: str) -> None:
@@ -52,25 +147,40 @@ def valider_repo_id(repo_id: str) -> None:
         raise ValueError("Repo_id invalide : '..' interdit.")
 
 
-def chemin_dataset(repo_id: str) -> Path:
+def construire_chemin_dataset(origine: OrigineDataset, repo_id: str) -> Path:
     """
-    Retourner le chemin local du dataset dans le cache LeRobot.
-    """
-
-    return RACINE_CACHE_LEROBOT / repo_id
-
-
-def detecter_type_dataset(repo_id: str) -> str:
-    """
-    Détecter si le dataset ressemble à un lot brut selon son suffixe.
+    Construire le chemin local du dataset.
     """
 
-    nom_dataset = repo_id.split("/")[-1]
+    return origine.racine / repo_id
 
-    if MOTIF_LOT.search(nom_dataset):
-        return "lot brut"
 
-    return "dataset unique ou officialisé"
+def verifier_chemin_dataset(origine: OrigineDataset, repo_id: str, chemin: Path) -> None:
+    """
+    Vérifier que le chemin local existe avant le chargement.
+    """
+
+    if chemin.exists():
+        return
+
+    message = f"""
+Dataset introuvable.
+
+Origine choisie : {origine.libelle}
+Repo ID         : {repo_id}
+Chemin calculé : {chemin}
+
+Suggestion : vérifier si le dataset est dans le cache LeRobot ou dans workspace/datasets.
+"""
+    raise FileNotFoundError(message.strip())
+
+
+def charger_dataset(repo_id: str, racine: Path) -> LeRobotDataset:
+    """
+    Charger le dataset LeRobot depuis son chemin local.
+    """
+
+    return LeRobotDataset(repo_id=repo_id, root=racine)
 
 
 def formater_booleen(valeur: bool) -> str:
@@ -90,6 +200,17 @@ def formater_valeur(valeur: object | None) -> str:
         return TEXTE_NON_DISPONIBLE
 
     return str(valeur)
+
+
+def formater_duree(duree_s: float | None) -> str:
+    """
+    Formater une durée en secondes.
+    """
+
+    if duree_s is None:
+        return TEXTE_NON_DISPONIBLE
+
+    return f"{duree_s:.2f} s"
 
 
 def dimensions_feature(features: dict[str, Any], nom_feature: str) -> str:
@@ -145,7 +266,9 @@ def detecter_format_video(racine: Path) -> str:
     if not dossier_videos.exists():
         return TEXTE_NON_DISPONIBLE
 
-    extensions = sorted({chemin.suffix.lower() for chemin in dossier_videos.rglob("*")})
+    extensions = sorted(
+        {chemin.suffix.lower() for chemin in dossier_videos.rglob("*") if chemin.is_file()}
+    )
     extensions = [extension for extension in extensions if extension]
 
     if not extensions:
@@ -154,138 +277,347 @@ def detecter_format_video(racine: Path) -> str:
     return ", ".join(extensions)
 
 
-def creer_contenu_manifest(repo_id: str, racine: Path, dataset: LeRobotDataset) -> str:
+def convertir_entier(valeur: Any) -> int:
+    """
+    Convertir une valeur scalaire Python, NumPy ou Torch en entier.
+    """
+
+    if isinstance(valeur, int):
+        return valeur
+
+    if isinstance(valeur, float | str):
+        return int(valeur)
+
+    methode_item = getattr(valeur, "item", None)
+
+    if callable(methode_item):
+        return convertir_entier(methode_item())
+
+    raise TypeError(f"Valeur non convertible en entier : {valeur!r}")
+
+
+def calculer_durees_episodes(dataset: LeRobotDataset) -> StatistiquesDurees:
+    """
+    Calculer les durées d'épisodes à partir du nombre de frames et du FPS.
+    """
+
+    fps = getattr(dataset, "fps", None)
+
+    if not isinstance(fps, (int, float)) or fps <= 0:
+        raise ValueError("FPS indisponible ou invalide : impossible de calculer les durées.")
+
+    frames_par_episode: dict[int, int] = {}
+
+    for index_frame in range(dataset.num_frames):
+        item = dataset.get_raw_item(index_frame)
+        episode = convertir_entier(item["episode_index"])
+        frames_par_episode[episode] = frames_par_episode.get(episode, 0) + 1
+
+    episodes = [
+        EpisodeDuree(
+            episode=episode,
+            nb_frames=nb_frames,
+            duree_s=nb_frames / fps,
+        )
+        for episode, nb_frames in sorted(frames_par_episode.items())
+    ]
+
+    if not episodes:
+        raise ValueError("Aucun épisode détecté : impossible de calculer les durées.")
+
+    durees = [episode.duree_s for episode in episodes]
+    duree_max_s = max(durees)
+
+    return StatistiquesDurees(
+        episodes=episodes,
+        duree_min_s=min(durees),
+        duree_max_s=duree_max_s,
+        duree_moyenne_s=mean(durees),
+        duree_mediane_s=median(durees),
+        suggestion_duree_s=ceil(duree_max_s + MARGE_DUREE_EXECUTION_S),
+    )
+
+
+def afficher_resume_dataset(
+    origine: OrigineDataset,
+    repo_id: str,
+    racine: Path,
+    dataset: LeRobotDataset,
+) -> None:
+    """
+    Afficher le résumé technique du dataset.
+    """
+
+    features = dict(dataset.features)
+    cles_features = set(features)
+    cles_cameras = lister_cameras(features)
+    videos_presentes = (racine / "videos").exists()
+
+    print("\nDataset")
+    print("-------")
+    print(f"Origine       : {origine.libelle}")
+    print(f"Repo ID       : {repo_id}")
+    print(f"Chemin local  : {racine}")
+    print(f"Chargement    : OK")
+    print(f"Épisodes      : {dataset.num_episodes}")
+    print(f"Frames        : {dataset.num_frames}")
+    print(f"FPS           : {formater_valeur(getattr(dataset, 'fps', None))}")
+    print(f"État          : {presence_feature(cles_features, 'observation.state')}")
+    print(f"Action        : {presence_feature(cles_features, 'action')}")
+    print(f"Timestamp     : {presence_feature(cles_features, 'timestamp')}")
+    print(f"Frame index   : {presence_feature(cles_features, 'frame_index')}")
+    print(f"Episode index : {presence_feature(cles_features, 'episode_index')}")
+    print(f"Task index    : {presence_feature(cles_features, 'task_index')}")
+    print(f"Caméras       : {', '.join(cles_cameras) if cles_cameras else 'indisponible'}")
+    print(f"Vidéos        : {'présentes' if videos_presentes else 'indisponibles'}")
+
+
+def presence_feature(cles_features: set[str], nom_feature: str) -> str:
+    """
+    Formater la présence d'une feature.
+    """
+
+    return "présent" if nom_feature in cles_features else "indisponible"
+
+
+def afficher_statistiques_durees(dataset: LeRobotDataset, statistiques: StatistiquesDurees) -> None:
+    """
+    Afficher les statistiques de durée des épisodes.
+    """
+
+    print("\nStatistiques des épisodes")
+    print("-------------------------")
+    print(f"Épisodes       : {dataset.num_episodes}")
+    print(f"Frames totales : {dataset.num_frames}")
+    print(f"FPS            : {getattr(dataset, 'fps', TEXTE_NON_DISPONIBLE)}")
+    print(f"Durée minimale : {formater_duree(statistiques.duree_min_s)}")
+    print(f"Durée maximale : {formater_duree(statistiques.duree_max_s)}")
+    print(f"Durée moyenne  : {formater_duree(statistiques.duree_moyenne_s)}")
+    print(f"Durée médiane  : {formater_duree(statistiques.duree_mediane_s)}")
+
+    print("\nDétail")
+    print("------")
+    for episode in statistiques.episodes:
+        print(
+            f"Épisode {episode.episode:02d} : "
+            f"{episode.nb_frames} frames, {episode.duree_s:.2f} s"
+        )
+
+
+def afficher_avertissements(statistiques: StatistiquesDurees) -> None:
+    """
+    Afficher les avertissements simples sur les durées.
+    """
+
+    ecart_s = statistiques.duree_max_s - statistiques.duree_min_s
+    seuil_court_s = statistiques.duree_mediane_s * 0.75
+    episodes_courts = [
+        episode for episode in statistiques.episodes if episode.duree_s < seuil_court_s
+    ]
+
+    if ecart_s <= 1.0 and not episodes_courts:
+        return
+
+    print("\nAvertissements")
+    print("--------------")
+
+    if ecart_s > 1.0:
+        print(f"- Écart supérieur à 1 seconde entre l'épisode le plus court et le plus long.")
+
+    for episode in episodes_courts:
+        print(
+            f"- Épisode {episode.episode:02d} beaucoup plus court que la médiane : "
+            f"{episode.duree_s:.2f} s."
+        )
+
+
+def suggerer_duree_execution(statistiques: StatistiquesDurees) -> None:
+    """
+    Afficher une suggestion pour la durée d'exécution de politique.
+    """
+
+    print("\nSuggestion pour duree_s")
+    print("-----------------------")
+    print(
+        "Suggestion pour [execution_politique].duree_s : "
+        f"{statistiques.suggestion_duree_s}"
+    )
+    print(
+        f"Base : durée maximale {statistiques.duree_max_s:.2f} s "
+        f"+ marge {MARGE_DUREE_EXECUTION_S:.2f} s"
+    )
+
+
+def lister_taches(dataset: LeRobotDataset) -> str:
+    """
+    Lister les tâches disponibles si LeRobot les expose simplement.
+    """
+
+    tasks = getattr(dataset.meta, "tasks", None)
+
+    if isinstance(tasks, dict):
+        valeurs = [str(valeur) for valeur in tasks.values()]
+        return ", ".join(valeurs) if valeurs else TEXTE_NON_DISPONIBLE
+
+    if isinstance(tasks, list):
+        valeurs = [str(valeur) for valeur in tasks]
+        return ", ".join(valeurs) if valeurs else TEXTE_NON_DISPONIBLE
+
+    return TEXTE_NON_DISPONIBLE
+
+
+def creer_contenu_manifest(
+    origine: OrigineDataset,
+    repo_id: str,
+    racine: Path,
+    dataset: LeRobotDataset,
+    statistiques: StatistiquesDurees,
+) -> str:
     """
     Créer le contenu Markdown du manifeste de vérification.
     """
 
     features = dict(dataset.features)
+    cles_features = set(features)
     cles_cameras = lister_cameras(features)
     fps = getattr(dataset, "fps", None)
     robot_type = getattr(dataset.meta, "robot_type", None)
-    duree_s = dataset.num_frames / fps if isinstance(fps, (int, float)) and fps > 0 else None
-    fichiers_video = compter_fichiers_video(racine)
     images_presentes = (racine / "images").exists()
     videos_presentes = (racine / "videos").exists()
-    state_present = "observation.state" in features
-    action_presente = "action" in features
     observations_presentes = any(cle.startswith("observation.") for cle in features)
     cameras_detectees = len(cles_cameras) > 0
     donnees_visuelles_presentes = images_presentes or videos_presentes or cameras_detectees
-    duree_texte = f"{duree_s:.2f} s" if duree_s is not None else TEXTE_NON_DISPONIBLE
     features_texte = ", ".join(sorted(features)) if features else TEXTE_NON_DISPONIBLE
     cameras_texte = ", ".join(cles_cameras) if cles_cameras else TEXTE_NON_DISPONIBLE
-    dimensions_state = dimensions_feature(features, "observation.state")
-    dimensions_action = dimensions_feature(features, "action")
+    lignes_episodes = "\n".join(
+        f"| {episode.episode:02d} | {episode.nb_frames} | {episode.duree_s:.2f} s |"
+        for episode in statistiques.episodes
+    )
 
     return f"""# Manifeste de vérification LeRobot
 
 ## Résumé
 
-- Dataset : {repo_id}
-- Statut de vérification : OK
-- Date de vérification : {datetime.now().isoformat(timespec="seconds")}
-- Chemin local : {racine}
-- Type : {detecter_type_dataset(repo_id)}
+| Champ | Valeur |
+| --- | --- |
+| Dataset | {repo_id} |
+| Origine | {origine.libelle} |
+| Statut de vérification | OK |
+| Date de vérification | {datetime.now().isoformat(timespec="seconds")} |
+| Chemin local | {racine} |
 
-## Résultat
+## Chargement
 
-- Chargement avec `LeRobotDataset` : OK
-- Verdict : OK
-- Message court : Dataset lisible et structure minimale détectée.
+| Contrôle | Résultat |
+| --- | --- |
+| Chargement avec `LeRobotDataset` | OK |
+| Dataset lisible | Oui |
+| Épisodes détectés | {formater_booleen(dataset.num_episodes > 0)} |
+| Frames détectées | {formater_booleen(dataset.num_frames > 0)} |
 
 ## Structure détectée
 
-- Nombre d'épisodes : {dataset.num_episodes}
-- Nombre de frames : {dataset.num_frames}
-- FPS : {formater_valeur(fps)}
-- Durée approximative : {duree_texte}
-- Robot type : {formater_valeur(robot_type)}
-- Features principales : {features_texte}
-- Caméras détectées : {cameras_texte}
+| Champ | Valeur |
+| --- | --- |
+| Nombre d'épisodes | {dataset.num_episodes} |
+| Nombre de frames | {dataset.num_frames} |
+| FPS | {formater_valeur(fps)} |
+| Robot type | {formater_valeur(robot_type)} |
+| Tâches disponibles | {lister_taches(dataset)} |
+| Features principales | {features_texte} |
 
 ## Données robotiques
 
-- Présence de `observation.state` : {formater_booleen(state_present)}
-- Présence de `action` : {formater_booleen(action_presente)}
-- Dimensions de `observation.state` si disponible : {dimensions_state}
-- Dimensions de `action` si disponible : {dimensions_action}
+| Contrôle | Résultat |
+| --- | --- |
+| Présence de `observation.state` | {formater_booleen("observation.state" in cles_features)} |
+| Présence de `action` | {formater_booleen("action" in cles_features)} |
+| Présence de `timestamp` | {formater_booleen("timestamp" in cles_features)} |
+| Présence de `frame_index` | {formater_booleen("frame_index" in cles_features)} |
+| Présence de `episode_index` | {formater_booleen("episode_index" in cles_features)} |
+| Présence de `task_index` | {formater_booleen("task_index" in cles_features)} |
+| Dimensions de `observation.state` | {dimensions_feature(features, "observation.state")} |
+| Dimensions de `action` | {dimensions_feature(features, "action")} |
+| Observations détectées | {formater_booleen(observations_presentes)} |
 
 ## Données visuelles
 
-- Présence d'images ou vidéos : {formater_booleen(donnees_visuelles_presentes)}
-- Clés caméra détectées : {cameras_texte}
-- Format vidéo détecté si disponible : {detecter_format_video(racine)}
-- Nombre de fichiers vidéo si facilement disponible : {formater_valeur(fichiers_video)}
+| Champ | Valeur |
+| --- | --- |
+| Présence d'images ou vidéos | {formater_booleen(donnees_visuelles_presentes)} |
+| Caméras détectées | {cameras_texte} |
+| Format vidéo détecté | {detecter_format_video(racine)} |
+| Nombre de fichiers vidéo | {formater_valeur(compter_fichiers_video(racine))} |
 
-## Contrôles de cohérence simples
+## Statistiques des épisodes
 
-- Dataset lisible : Oui
-- Épisodes détectés : {formater_booleen(dataset.num_episodes > 0)}
-- Frames détectées : {formater_booleen(dataset.num_frames > 0)}
-- Actions détectées : {formater_booleen(action_presente)}
-- Observations détectées : {formater_booleen(observations_presentes)}
-- Caméras détectées : {formater_booleen(cameras_detectees)}
+| Champ | Valeur |
+| --- | --- |
+| Durée minimale | {formater_duree(statistiques.duree_min_s)} |
+| Durée maximale | {formater_duree(statistiques.duree_max_s)} |
+| Durée moyenne | {formater_duree(statistiques.duree_moyenne_s)} |
+| Durée médiane | {formater_duree(statistiques.duree_mediane_s)} |
+
+## Détail par épisode
+
+| Épisode | Frames | Durée |
+| --- | ---: | ---: |
+{lignes_episodes}
+
+## Suggestion pour `[execution_politique].duree_s`
+
+| Champ | Valeur |
+| --- | --- |
+| Suggestion | {statistiques.suggestion_duree_s} |
+| Base | Durée maximale {statistiques.duree_max_s:.2f} s + marge {MARGE_DUREE_EXECUTION_S:.2f} s |
 
 ## Conclusion
 
 - Verdict final : OK
-- Prêt pour officialisation : Oui
-- Notes :
+- Notes : vérifier manuellement les avertissements affichés dans la console si nécessaire.
 """
 
 
-def ecrire_manifest(chemin_dataset: Path, nom_fichier: str, contenu: str) -> Path:
+def ecrire_manifest(chemin_dataset: Path, contenu: str) -> Path:
     """
     Écrire ou remplacer le manifeste Markdown dans le dossier du dataset.
     """
 
-    chemin_manifest = chemin_dataset / nom_fichier
+    chemin_manifest = chemin_dataset / "manifeste.md"
     chemin_manifest.write_text(contenu, encoding="utf-8")
     return chemin_manifest
 
 
-def verifier_dataset(repo_id: str) -> bool:
+def verifier_dataset(
+    origine: OrigineDataset,
+    repo_id: str,
+    racine: Path,
+) -> bool:
     """
-    Charger le dataset et afficher une vérification courte.
+    Charger le dataset, afficher la vérification et écrire le manifeste.
     """
-
-    print("\nVérification du dataset LeRobot\n")
-    print(f"Dataset : {repo_id}\n")
-
-    racine = chemin_dataset(repo_id)
 
     try:
-        dataset = LeRobotDataset(repo_id=repo_id, root=racine)
+        verifier_chemin_dataset(origine, repo_id, racine)
+        dataset = charger_dataset(repo_id, racine)
+        statistiques = calculer_durees_episodes(dataset)
     except Exception as erreur:  # noqa: BLE001
-        print("Chargement : ERREUR")
-        print(f"Erreur     : {erreur}")
-        print("\nVerdict   : ERREUR")
+        print("\nChargement ou vérification : ERREUR")
+        print(f"Erreur : {erreur}")
+        print("\nVerdict : ERREUR")
         return False
 
-    cles_features = set(dataset.features)
-    cles_cameras = lister_cameras(dict(dataset.features))
-    videos_presentes = (racine / "videos").exists()
-    etat_texte = (
-        "observation.state présent" if "observation.state" in cles_features else "indisponible"
-    )
+    afficher_resume_dataset(origine, repo_id, racine, dataset)
+    afficher_statistiques_durees(dataset, statistiques)
+    afficher_avertissements(statistiques)
+    suggerer_duree_execution(statistiques)
 
-    print("Chargement : OK")
-    print(f"Épisodes  : {dataset.num_episodes}")
-    print(f"Frames    : {dataset.num_frames}")
+    contenu_manifest = creer_contenu_manifest(origine, repo_id, racine, dataset, statistiques)
+    chemin_manifest = ecrire_manifest(racine, contenu_manifest)
 
-    fps = getattr(dataset, "fps", None)
-    print(f"FPS       : {fps if fps is not None else 'indisponible'}")
-
-    print(f"État      : {etat_texte}")
-    print(f"Action    : {'présent' if 'action' in cles_features else 'indisponible'}")
-    print(f"Caméras   : {', '.join(cles_cameras) if cles_cameras else 'indisponible'}")
-    print(f"Vidéos    : {'présentes' if videos_presentes else 'indisponibles'}")
-
-    contenu_manifest = creer_contenu_manifest(repo_id, racine, dataset)
-    chemin_manifest = ecrire_manifest(racine, "manifeste.md", contenu_manifest)
-
-    print("\nVérification : OK")
+    print("\nVérification")
+    print("------------")
+    print("Verdict   : OK")
     print(f"Manifeste : {chemin_manifest}")
     return True
 
@@ -295,16 +627,19 @@ def main() -> None:
     Point d'entrée du script.
     """
 
-    config = config_lerobot.charger_config(CHEMIN_CONFIG)
-    repo_id = demander_repo_id(config.enregistrement.dataset.repo_id_defaut)
+    print("Vérification du dataset LeRobot\n")
 
     try:
+        config = charger_configuration()
+        origine = demander_origine_dataset(config)
+        repo_id = demander_repo_id(config.enregistrement.dataset.repo_id_defaut)
         valider_repo_id(repo_id)
+        racine = construire_chemin_dataset(origine, repo_id)
     except ValueError as erreur:
-        print(f"\nVerdict   : ERREUR\nErreur     : {erreur}")
+        print(f"\nVerdict : ERREUR\nErreur  : {erreur}")
         return
 
-    verifier_dataset(repo_id)
+    verifier_dataset(origine, repo_id, racine)
 
 
 if __name__ == "__main__":

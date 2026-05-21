@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 from lerobot.datasets import LeRobotDataset
+from lerobot.utils.constants import HF_LEROBOT_HOME
 
 from commun import config_lerobot
 from commun import utils
@@ -15,10 +16,6 @@ from commun import utils
 CHOIX_ANNULER = "1"
 CHOIX_SUPPRIMER = "2"
 CHOIX_AUTRE_NOM = "3"
-
-RACINE_CACHE_LEROBOT = Path.home() / ".cache" / "huggingface" / "lerobot"
-RACINE_DATASETS_OFFICIELS = Path("/home/taubore/Projets/lerobot/lerobot-ws/datasets")
-CHEMIN_CONFIG = Path(__file__).resolve().parent / "config_lerobot_ws.toml"
 
 
 def demander_repo_id_base(repo_id_defaut: str) -> str:
@@ -87,18 +84,26 @@ def chemin_cache_lerobot(repo_id: str) -> Path:
     Retourner le chemin cache local d'un dataset LeRobot.
     """
 
-    return RACINE_CACHE_LEROBOT / repo_id
+    return HF_LEROBOT_HOME / repo_id
 
 
-def chemin_dataset_officiel(repo_id: str) -> Path:
+def racine_datasets_officiels(config: config_lerobot.ConfigLeRobotWs) -> Path:
+    """
+    Retourner la racine des datasets officialisés depuis la configuration.
+    """
+
+    return config.workspace.racine / "datasets"
+
+
+def chemin_dataset_officiel(config: config_lerobot.ConfigLeRobotWs, repo_id: str) -> Path:
     """
     Retourner le chemin de destination officialisée.
     """
 
-    return RACINE_DATASETS_OFFICIELS / repo_id
+    return racine_datasets_officiels(config) / repo_id
 
 
-def gerer_destination_existante(destination: Path) -> bool:
+def gerer_destination_existante(destination: Path, racine_datasets: Path) -> bool:
     """
     Gérer le cas d'une destination déjà existante.
     """
@@ -117,7 +122,7 @@ def gerer_destination_existante(destination: Path) -> bool:
         return False
 
     if choix == CHOIX_SUPPRIMER:
-        racine_resolue = RACINE_DATASETS_OFFICIELS.resolve()
+        racine_resolue = racine_datasets.resolve()
         destination_resolue = destination.resolve()
 
         if racine_resolue not in destination_resolue.parents:
@@ -140,13 +145,17 @@ def copier_dataset(source: Path, destination: Path) -> None:
     shutil.copytree(source, destination)
 
 
-def fusionner_datasets(repo_ids_sources: list[str], repo_id_final: str) -> None:
+def fusionner_datasets(
+    config: config_lerobot.ConfigLeRobotWs,
+    repo_ids_sources: list[str],
+    repo_id_final: str,
+) -> None:
     """
     Fusionner plusieurs datasets via l'outil officiel lerobot-edit-dataset.
     """
 
     racines_sources = [str(chemin_cache_lerobot(repo_id)) for repo_id in repo_ids_sources]
-    destination = chemin_dataset_officiel(repo_id_final)
+    destination = chemin_dataset_officiel(config, repo_id_final)
 
     commande = [
         "lerobot-edit-dataset",
@@ -192,7 +201,7 @@ def main() -> None:
     print("Officialisation du dataset LeRobot\n")
 
     try:
-        config = config_lerobot.charger_config(CHEMIN_CONFIG)
+        config = config_lerobot.charger_config()
         repo_id_defaut = config.enregistrement.dataset.repo_id_defaut
 
         repo_id_base = demander_repo_id_base(repo_id_defaut)
@@ -203,7 +212,8 @@ def main() -> None:
         valider_repo_id(repo_id_final)
 
         repo_ids_sources = construire_repo_ids_sources(repo_id_base, nombre_lots)
-        destination = chemin_dataset_officiel(repo_id_final)
+        racine_datasets = racine_datasets_officiels(config)
+        destination = chemin_dataset_officiel(config, repo_id_final)
 
         print("\nSources :")
         for source in repo_ids_sources:
@@ -220,7 +230,7 @@ def main() -> None:
             print("Opération annulée.")
             return
 
-        if not gerer_destination_existante(destination):
+        if not gerer_destination_existante(destination, racine_datasets):
             print("Opération annulée.")
             return
 
@@ -236,7 +246,7 @@ def main() -> None:
                 source = chemin_cache_lerobot(repo_id_source)
                 if not source.exists():
                     raise FileNotFoundError(f"Source introuvable : {source}")
-            fusionner_datasets(repo_ids_sources, repo_id_final)
+            fusionner_datasets(config, repo_ids_sources, repo_id_final)
 
         verifier_chargement_minimal(repo_id_final, destination)
 

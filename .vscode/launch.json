@@ -4,13 +4,26 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
+        {
+            "name": "Python - exécuter le fichier courant",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        },
         {
             "name": "LeRobot - entraîner ACT",
             "type": "debugpy",
             "request": "launch",
             "module": "lerobot.scripts.lerobot_train",
             "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
             "cwd": "${workspaceFolder}",
+            "justMyCode": true,
             "args": [
                 "--dataset.repo_id=taubore/${input:datasetNom}",
                 "--dataset.root=${workspaceFolder}/datasets/taubore/${input:datasetNom}",

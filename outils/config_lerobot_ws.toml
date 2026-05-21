@@ -34,6 +34,6 @@ dossier_sortie = "outputs/train"
 [execution_politique]
 strategie = "base"
 nom_politique_defaut = "cube_vers_zone_v001_final_5000"
-duree_s = 5
+duree_s = 7
 tache_defaut = "Pousser le cube noir vers le carré blanc."
 display_data = false

@@ -84,6 +84,9 @@ sont lus dans `outils/config_lerobot_ws.toml` via `commun/config_lerobot.py`.
 
 ## Vérification de datasets
 
-Le script `outils/verifier_dataset.py` charge un lot ou un dataset avec `LeRobotDataset` et
-affiche un résumé court. Si la vérification réussit, il écrit aussi un manifeste Markdown dans
-le dossier du dataset vérifié, avec le suffixe `_manifest.md`.
+Le script `outils/verifier_dataset.py` charge un lot brut depuis le cache LeRobot ou un dataset
+officialisé depuis le workspace avec `LeRobotDataset`. Il affiche un résumé technique, les
+statistiques de durée des épisodes et une suggestion pour `[execution_politique].duree_s`.
+
+Si la vérification réussit, il écrit aussi un manifeste Markdown `manifeste.md` dans le dossier
+du dataset vérifié.
