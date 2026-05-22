@@ -129,10 +129,8 @@ def restaurer_echo_terminal(attributs: list[Any] | None) -> None:
     Restaurer l'affichage normal des touches saisies dans le terminal.
     """
 
-    if attributs is None:
-        return
-
-    termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, attributs)
+    if attributs is not None:
+        termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, attributs)
 
 
 def saisir_texte(invite: str, texte_defaut: str) -> str:
@@ -276,7 +274,7 @@ def choisir_repo_dataset(config: config_lerobot.ConfigLeRobotWs) -> str | None:
         print("2. Supprimer le lot existant et recommencer")
         print("3. Utiliser un nouveau nom de lot")
 
-        choix = input("Votre choix [1/2/3] : ").strip()
+        choix = utils.saisir_ligne("Votre choix [1/2/3] : ").strip()
 
         if choix == CHOIX_ANNULER:
             return None
@@ -432,10 +430,7 @@ def enregistrer_dataset() -> None:
 
                 print(f"Épisode sauvegardé : {episodes_sauvegardes}/{dataset_config.nb_episodes}")
 
-                if (
-                    episodes_sauvegardes < dataset_config.nb_episodes
-                    and not events["stop_recording"]
-                ):
+                if not events["stop_recording"]:
                     print("Réinitialisation")
                     utils_lerobot.jouer_son_reinitialisation()
 

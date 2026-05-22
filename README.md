@@ -64,9 +64,15 @@ Contrôles pendant l'enregistrement :
 - flèche gauche : annuler et recommencer l'épisode courant ;
 - `ESC` : arrêter la session, encoder les vidéos et terminer proprement.
 
+Après chaque épisode sauvegardé, y compris le dernier, le script lance une phase de
+réinitialisation pour laisser le temps de replacer le bras avant la fin de session.
+
 Par défaut, le script masque les sorties verbeuses de LeRobot et de l'encodeur vidéo pendant
 l'enregistrement. Pour les réafficher lors d'un diagnostic, passer la constante `VERBOSE` à
 `True` dans `outils/enregistrer_dataset.py`.
+
+Les fonctions de saisie interactives remettent le terminal en mode ligne avant les prompts. Cela
+évite les choix de menu invisibles après une interruption ou une écoute clavier directe.
 
 ## Exécution de politiques
 

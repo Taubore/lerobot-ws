@@ -102,7 +102,7 @@ def demander_origine_dataset(config: config_lerobot.ConfigLeRobotWs) -> OrigineD
     print("2. workspace")
 
     try:
-        choix = input("Votre choix [1] : ").strip()
+        choix = utils.saisir_ligne("Votre choix [1] : ").strip()
     except EOFError:
         choix = ""
 

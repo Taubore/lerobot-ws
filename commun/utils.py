@@ -7,6 +7,7 @@ import subprocess
 import sys
 import termios
 import tty
+from typing import Any
 
 TOUCHE_ENTREE = ("\r", "\n")
 TOUCHE_ECHAP = "\x1b"
@@ -20,6 +21,36 @@ SEQUENCE_DROITE = "C"
 SEQUENCE_DEBUT = "H"
 SEQUENCE_FIN = "F"
 FIN_SEQUENCE = "~"
+
+
+def _restaurer_terminal_interactif() -> None:
+    """
+    Remettre le terminal dans un état adapté aux saisies ligne par ligne.
+
+    Certains écouteurs clavier désactivent l'écho ou le mode canonique. Si le script est
+    interrompu dans cet état, `input()` reçoit encore les valeurs, mais l'utilisateur ne voit ni
+    les caractères saisis ni le retour de ligne.
+    """
+
+    if not sys.stdin.isatty():
+        return
+
+    descripteur = sys.stdin.fileno()
+    attributs: list[Any] = termios.tcgetattr(descripteur)
+    nouveaux_attributs = attributs.copy()
+
+    nouveaux_attributs[0] = nouveaux_attributs[0] | termios.ICRNL
+    nouveaux_attributs[1] = nouveaux_attributs[1] | termios.OPOST | termios.ONLCR
+    nouveaux_attributs[3] = (
+        nouveaux_attributs[3]
+        | termios.ECHO
+        | termios.ECHONL
+        | termios.ICANON
+        | termios.IEXTEN
+        | termios.ISIG
+    )
+
+    termios.tcsetattr(descripteur, termios.TCSADRAIN, nouveaux_attributs)
 
 
 def jouer_bip(frequence_hz: int, duree_s: float) -> None:
@@ -59,6 +90,8 @@ def saisir_avec_texte_defaut(invite: str, texte_defaut: str) -> str:
     Saisir un texte en préremplissant la ligne avec une valeur par défaut.
     """
 
+    _restaurer_terminal_interactif()
+
     if not sys.stdin.isatty():
         texte = input(f"{invite}[{texte_defaut}] ").strip()
 
@@ -68,6 +101,15 @@ def saisir_avec_texte_defaut(invite: str, texte_defaut: str) -> str:
         return texte_defaut
 
     return _saisir_ligne_modifiable(invite, texte_defaut).strip() or texte_defaut
+
+
+def saisir_ligne(invite: str) -> str:
+    """
+    Saisir une ligne de texte après remise en état du terminal interactif.
+    """
+
+    _restaurer_terminal_interactif()
+    return input(invite)
 
 
 def _saisir_ligne_modifiable(invite: str, texte_initial: str) -> str:

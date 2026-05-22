@@ -19,11 +19,11 @@ racine = "/home/taubore/Projets/lerobot/lerobot-ws"
 delai_avant_demarrage_s = 10
 
 [enregistrement.dataset]
-repo_id_defaut = "taubore/cube_vers_zone_v001_lotNN"
-tache_defaut = "Pousser le cube noir vers le carré blanc."
+repo_id_defaut = "taubore/cube_dans_boite_v001_lotNN"
+tache_defaut = "Prendre le cube et le déposer dans la boîte."
 nb_episodes = 5
-duree_episode_s = 7
-duree_reinitialisation_s = 4
+duree_episode_s = 15
+duree_reinitialisation_s = 5
 use_videos = true
 image_writer_threads = 4
 push_to_hub = false
@@ -33,8 +33,8 @@ dossier_sortie = "outputs/train"
 
 [execution_politique]
 strategie = "base"
-nom_politique_defaut = "cube_vers_zone_v001_final_contact_5000"
-duree_s = 5
-tache_defaut = "Pousser le cube noir vers le carré blanc."
+nom_politique_defaut = "cube_dans_boite_v001_5000"
+duree_s = 15
+tache_defaut = "Prendre le cube et le déposer dans la boîte."
 display_data = false
 interpolation_multiplier = 2

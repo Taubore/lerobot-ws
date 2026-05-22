@@ -31,7 +31,7 @@ def demander_nombre_lots() -> int:
     Demander le nombre de lots à assembler.
     """
 
-    texte = input("Nombre de lots : ").strip()
+    texte = utils.saisir_ligne("Nombre de lots : ").strip()
 
     if not texte.isdigit():
         raise ValueError("Le nombre de lots doit être un entier >= 0.")
@@ -116,7 +116,7 @@ def gerer_destination_existante(destination: Path, racine_datasets: Path) -> boo
     print("2. Supprimer et recommencer")
     print("3. Choisir un autre nom")
 
-    choix = input("Votre choix : ").strip()
+    choix = utils.saisir_ligne("Votre choix : ").strip()
 
     if choix == CHOIX_ANNULER:
         return False
@@ -224,7 +224,7 @@ def main() -> None:
 
         print("\nDestination :")
         print(destination)
-        confirmation = input("\nEntrée = continuer, q = annuler : ").strip().lower()
+        confirmation = utils.saisir_ligne("\nEntrée = continuer, q = annuler : ").strip().lower()
 
         if confirmation == "q":
             print("Opération annulée.")

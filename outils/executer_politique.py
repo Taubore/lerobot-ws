@@ -316,7 +316,9 @@ def lire_commande_repli() -> str:
     Lire une commande simple si la lecture directe n'est pas disponible.
     """
 
-    commande = input("Entrée : lancer un essai | q puis Entrée : quitter > ").strip().lower()
+    commande = utils.saisir_ligne(
+        "Entrée : lancer un essai | q puis Entrée : quitter > "
+    ).strip().lower()
 
     if commande == TOUCHE_QUITTER:
         return TOUCHE_ECHAP

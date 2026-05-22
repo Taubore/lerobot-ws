@@ -1,3 +1,47 @@
+# taubore/[nom dataset]
+
+## Objectif 
+
+[Description de l'objectif]
+
+## Dataset cible
+
+Nom : [nom dataset]
+Tâche : [nom de la tâche tel que décrit dans le fichier de config]
+
+## Lots bruts
+
+- lot_001 : 
+- lot_002 : 
+...
+
+## Résultats de l'évaluation
+
+Modèle : [nom modèle]
+Mode : rollout standard, interpolation à 2
+Durée : 10 s
+
+| Position | Essai 1 | Essai 2 | Essai 3 | Résultat | Notes |
+|---|---|---|---|---|---|
+| centre ||||||
+| droite ||||||
+| gauche ||||||
+| haut ||||||
+| bas ||||||
+
+S = Succès  E = Échec  P = Partiel
+
+
+## Analyse de l'évaluation
+
+
+## Hypothèse :
+
+
+## Décision :
+
+
+
 # taubore/cube_vers_zone_v001
 
 ## Objectif 
@@ -97,3 +141,43 @@ La politique reste saccadée pendant le mouvement latéral, mais les saccades se
 - conserver ce modèle comme nouvelle référence ;
 - ne pas ajouter immédiatement un nouveau lot correctif ;
 - tester ensuite une amélioration de fluidité par évaluation lissée ou par données plus fluides.
+
+# taubore/cube_dans_boite_v001
+
+## Objectif 
+
+Apprendre une première tâche complète de pick-and-place : saisir le cube dans le carré blanc,
+le soulever, le transporter vers une boîte rectangulaire noire et le déposer dans la boîte.
+
+## Dataset cible
+
+Nom : taubore/cube_dans_boite_v001
+Tâche : prendre le cube et le déposer dans la boîte noire
+
+## Lots bruts
+
+- lot_001 : 5 épisodes, cube près du centre, boîte fixe, trajectoire de référence.
+- lot_002 : 5 épisodes, petites variations du cube dans le carré blanc, boîte fixe.
+- lot_003 : correctif éventuel après évaluation.
+
+## Résultats de l'évaluation
+
+Modèle : cube_dans_boite_v001_ft_soulever_5000
+Mode : rollout standard, interpolation à 2
+Durée : 12 s
+
+| Position | Essai 1 | Essai 2 | Essai 3 | Résultat | Notes |
+|---|---|---|---|---|---|
+| centre ||||||
+| droite ||||||
+| gauche ||||||
+| avant ||||||
+| arrière ||||||
+
+S = Succès  E = Échec  P = Partiel
+
+## Analyse de l'évaluation
+
+## Hypothèse :
+
+## Décision :

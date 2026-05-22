@@ -6,7 +6,7 @@
     "configurations": [
         
         {
-            "name": "Python - exécuter le fichier courant",
+            "name": "Exécuter le script Python courant",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
@@ -16,7 +16,7 @@
             "justMyCode": true
         },
         {
-            "name": "LeRobot - entraîner ACT",
+            "name": "Entraîner ACT de zéro",
             "type": "debugpy",
             "request": "launch",
             "module": "lerobot.scripts.lerobot_train",
@@ -38,6 +38,29 @@
                 "--wandb.enable=false",
                 "--policy.push_to_hub=false"
             ]
+        },
+        {
+            "name": "Entraîner ACT à la suite d'une politique existante",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "lerobot.scripts.lerobot_train",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true,
+            "args": [
+                "--dataset.repo_id=taubore/${input:datasetNom}",
+                "--dataset.root=${workspaceFolder}/datasets/taubore/${input:datasetNom}",
+                "--policy.path=${workspaceFolder}/outputs/train/${input:policyNom}/checkpoints/last/pretrained_model",
+                "--output_dir=${workspaceFolder}/outputs/train/${input:datasetNom}_${input:stepsEntrainement}",
+                "--job_name=act_${input:stepsEntrainement}",
+                "--steps=${input:stepsEntrainement}",
+                "--batch_size=8",
+                "--save_freq=1000",
+                "--log_freq=50",
+                "--wandb.enable=false",
+                "--policy.push_to_hub=false"
+            ]
         }
     ],
     "inputs": [
@@ -45,13 +68,19 @@
             "id": "datasetNom",
             "type": "promptString",
             "description": "Nom du dataset",
-            "default": "cube_vers_zone_v001_final"
+            "default": "cube_dans_boite_v002"
+        },
+        {
+            "id": "policyNom",
+            "type": "promptString",
+            "description": "Nom de la politique à incorporer",
+            "default": "cube_dans_boite_v001_5000"
         },
         {
             "id": "stepsEntrainement",
             "type": "promptString",
             "description": "Nombre d'étapes d'entraînement",
             "default": "5000"
-        }
+        },
     ]
 }
