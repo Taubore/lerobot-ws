@@ -94,6 +94,7 @@ class ConfigExecutionPolitique:
     duree_s: float
     tache_defaut: str
     display_data: bool
+    interpolation_multiplier: int
 
 
 @dataclass(frozen=True)
@@ -194,6 +195,7 @@ def _charger_execution_politique(donnees: dict[str, Any]) -> ConfigExecutionPoli
         duree_s=execution_politique["duree_s"],
         tache_defaut=execution_politique["tache_defaut"],
         display_data=execution_politique["display_data"],
+        interpolation_multiplier=execution_politique["interpolation_multiplier"],
     )
 
 

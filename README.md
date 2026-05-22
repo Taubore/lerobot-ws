@@ -81,6 +81,8 @@ python lerobot-ws/outils/executer_politique.py
 
 Les paramètres de workspace, entraînement, matériel, caméra, politique par défaut, tâche et durée
 sont lus dans `outils/config_lerobot_ws.toml` via `commun/config_lerobot.py`.
+Le paramètre `[execution_politique].interpolation_multiplier` règle l'interpolation d'actions
+LeRobot pour lisser les mouvements pendant l'exécution.
 
 ## Vérification de datasets
 

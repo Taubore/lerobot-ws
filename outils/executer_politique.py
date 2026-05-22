@@ -177,6 +177,7 @@ def creer_config_rollout(
         strategy=BaseStrategyConfig(),
         fps=float(config.materiel.camera_globale.fps),
         duration=execution.duree_s,
+        interpolation_multiplier=execution.interpolation_multiplier,
         task=execution.tache_defaut,
         display_data=execution.display_data,
     )
@@ -330,12 +331,9 @@ def afficher_resume(config: config_lerobot.ConfigLeRobotWs, chemin_modele: Path)
 
     execution = config.execution_politique
 
-    print()
-    print(f"Modèle : {chemin_modele}")
     print(f"Tâche : {execution.tache_defaut}")
     print(f"Durée : {execution.duree_s:g} s")
     print("Espace : lancer un essai | ESC : quitter")
-    print()
 
 
 def boucle_interactive(config: config_lerobot.ConfigLeRobotWs, chemin_modele: Path) -> None:

@@ -67,3 +67,33 @@ La politique semble toutefois avoir appris la tâche générale :
 - ne pas faire un lot seulement pour la position bas
 - produire un lot correctif ciblé sur le contact de poussée
 - inclure surtout les positions gauche et bas, où le défaut apparaît
+
+
+# taubore/cube_vers_zone_v001_contact_5000
+
+Mode : rollout standard, sans lissage  
+Durée : 7 s  
+
+Résumé :
+- 20 essais physiques réalisés ;
+- 3 à 5 essais par position ;
+- 1 seul échec observé ;
+- échec en position haut ;
+- réussite globale approximative : 95 %.
+
+## Analyse :
+Le lot correctif `lot_006_contact` semble avoir amélioré la robustesse de la politique.  
+Le défaut de contact trop bas observé lors de l’évaluation précédente semble moins présent ou moins problématique.
+
+La politique reste saccadée pendant le mouvement latéral, mais les saccades semblent légèrement moins marquées qu’avec le modèle précédent.
+
+## Conclusion :
+- la politique est maintenant fonctionnelle et relativement robuste pour la tâche actuelle ;
+- la correction ciblée du dataset a été utile ;
+- aucun besoin immédiat de refaire tout le dataset ;
+- la prochaine amélioration doit viser la fluidité, sans dégrader le taux de réussite.
+
+## Décision :
+- conserver ce modèle comme nouvelle référence ;
+- ne pas ajouter immédiatement un nouveau lot correctif ;
+- tester ensuite une amélioration de fluidité par évaluation lissée ou par données plus fluides.

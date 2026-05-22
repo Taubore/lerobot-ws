@@ -98,11 +98,16 @@ respecter lors d'ajout de nouveaux fichiers sources.
 - Ne jamais lancer d’action longue ou coûteuse sans accord explicite : entraînement, téléchargement massif, évaluation longue, enregistrement robot prolongé.
 - Si un test réaliste peut être fait avec un dataset local existant et sans modifier son contenu métier, le privilégier.
 
-
 ## Préférences d’autorisation
 
 - Quand l’outil demande une autorisation, proposer un préfixe persistant raisonnable plutôt qu’une autorisation ponctuelle si cela réduit les interruptions futures.
 - Préfixe persistant recommandé pour ce projet :
   `conda run`
 - Ne pas proposer de préfixe persistant trop large comme `python`, `python3`, `bash`, `rm` ou une commande destructive.
+
+## Interaction avec Codex
+
+- Avant une modification non triviale, présenter le plan et attendre validation.
+- Éviter de répéter dans les prompts les consignes déjà présentes dans ce fichier.
+- Les demandes doivent se limiter au contexte spécifique de la tâche.
 
