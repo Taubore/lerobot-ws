@@ -28,7 +28,7 @@ from lerobot.datasets import (
 )
 from lerobot.processor import make_default_processors
 from lerobot.robots.so_follower import SO101Follower, SO101FollowerConfig
-from lerobot.scripts.lerobot_record import record_loop
+from lerobot.scripts.lerobot_record import init_rerun, record_loop
 from lerobot.teleoperators.so_leader import SO101Leader, SO101LeaderConfig
 from lerobot.utils.constants import HF_LEROBOT_HOME
 from lerobot.utils.feature_utils import combine_feature_dicts
@@ -369,6 +369,10 @@ def enregistrer_dataset() -> None:
             robot_observation_processor,
         ) = make_default_processors()
 
+        if config.enregistrement.display_data:
+            with sortie_lerobot_discrete():
+                init_rerun(session_name="recording")
+
         attendre_demarrage(config.enregistrement.delai_avant_demarrage_s)
 
         with encodage_video_discret(dataset):
@@ -391,7 +395,7 @@ def enregistrer_dataset() -> None:
                         dataset=dataset,
                         control_time_s=int(dataset_config.duree_episode_s),
                         single_task=tache,
-                        display_data=False,
+                        display_data=config.enregistrement.display_data,
                     )
 
                 if events["rerecord_episode"]:
@@ -416,7 +420,7 @@ def enregistrer_dataset() -> None:
                                 teleop=teleop,
                                 control_time_s=int(dataset_config.duree_reinitialisation_s),
                                 single_task=tache,
-                                display_data=False,
+                                display_data=config.enregistrement.display_data,
                             )
 
                     continue
@@ -445,7 +449,7 @@ def enregistrer_dataset() -> None:
                             teleop=teleop,
                             control_time_s=int(dataset_config.duree_reinitialisation_s),
                             single_task=tache,
-                            display_data=False,
+                            display_data=config.enregistrement.display_data,
                         )
 
             if episodes_sauvegardes == dataset_config.nb_episodes:

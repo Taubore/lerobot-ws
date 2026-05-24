@@ -68,13 +68,13 @@
             "id": "datasetNom",
             "type": "promptString",
             "description": "Nom du dataset",
-            "default": "cube_dans_boite_v002"
+            "default": "cube_dans_boite_v004"
         },
         {
             "id": "policyNom",
             "type": "promptString",
             "description": "Nom de la politique à incorporer",
-            "default": "cube_dans_boite_v001_5000"
+            "default": "cube_dans_boite_v004_5000"
         },
         {
             "id": "stepsEntrainement",

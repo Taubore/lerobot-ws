@@ -17,9 +17,10 @@ racine = "/home/taubore/Projets/lerobot/lerobot-ws"
 
 [enregistrement]
 delai_avant_demarrage_s = 10
+display_data = true
 
 [enregistrement.dataset]
-repo_id_defaut = "taubore/cube_dans_boite_v001_lotNN"
+repo_id_defaut = "taubore/cube_dans_boite_v004_lotNN"
 tache_defaut = "Prendre le cube et le déposer dans la boîte."
 nb_episodes = 5
 duree_episode_s = 15
@@ -33,8 +34,8 @@ dossier_sortie = "outputs/train"
 
 [execution_politique]
 strategie = "base"
-nom_politique_defaut = "cube_dans_boite_v001_5000"
-duree_s = 15
+nom_politique_defaut = "cube_dans_boite_v004_5000"
+duree_s = 12
 tache_defaut = "Prendre le cube et le déposer dans la boîte."
 display_data = false
 interpolation_multiplier = 2

@@ -104,6 +104,7 @@ class ConfigEnregistrement:
     """
 
     delai_avant_demarrage_s: int
+    display_data: bool
     dataset: ConfigDatasetEnregistrement
 
 
@@ -205,6 +206,7 @@ def _charger_enregistrement(donnees: dict[str, Any]) -> ConfigEnregistrement:
 
     return ConfigEnregistrement(
         delai_avant_demarrage_s=enregistrement["delai_avant_demarrage_s"],
+        display_data=enregistrement["display_data"],
         dataset=ConfigDatasetEnregistrement(
             repo_id_defaut=dataset["repo_id_defaut"],
             tache_defaut=dataset["tache_defaut"],

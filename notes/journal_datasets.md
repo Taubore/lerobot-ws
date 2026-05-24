@@ -142,7 +142,7 @@ La politique reste saccadée pendant le mouvement latéral, mais les saccades se
 - ne pas ajouter immédiatement un nouveau lot correctif ;
 - tester ensuite une amélioration de fluidité par évaluation lissée ou par données plus fluides.
 
-# taubore/cube_dans_boite_v001
+# taubore/cube_dans_boite_v004
 
 ## Objectif 
 
@@ -151,33 +151,77 @@ le soulever, le transporter vers une boîte rectangulaire noire et le déposer d
 
 ## Dataset cible
 
-Nom : taubore/cube_dans_boite_v001
+Nom : taubore/cube_dans_boite_v004
 Tâche : prendre le cube et le déposer dans la boîte noire
 
 ## Lots bruts
 
-- lot_001 : 5 épisodes, cube près du centre, boîte fixe, trajectoire de référence.
+- lot_001 : 5 épisodes, cube au centre, boîte fixe, trajectoire de référence.
 - lot_002 : 5 épisodes, petites variations du cube dans le carré blanc, boîte fixe.
-- lot_003 : correctif éventuel après évaluation.
 
 ## Résultats de l'évaluation
 
-Modèle : cube_dans_boite_v001_ft_soulever_5000
+Modèle : cube_dans_boite_v004_5000
 Mode : rollout standard, interpolation à 2
-Durée : 12 s
+Durée : 15 s
 
 | Position | Essai 1 | Essai 2 | Essai 3 | Résultat | Notes |
 |---|---|---|---|---|---|
-| centre ||||||
-| droite ||||||
-| gauche ||||||
-| avant ||||||
-| arrière ||||||
+| centre |P|E|P|Pas très bon|Prise du cube, mais passé près de le perdre, car trop à droite. Cube tombé à l'extérieur de la boite (haut, gauche)|
+| droite |S|S|E|Succès, mais fragile|La prise à droite semble un peu plus facile, mais demeure fragile. Lorsque succès du cube dans la boite, celui-ci passait près d'être à l'extérieur, car la pince était trop à gauche de la boite.|
+| gauche |E|E|E|Incapable de prendre le cube|Prise trop à droite, la pince gauche touchait le milieu du cube. Prise impossible. Le robot, voyais qu'il n'avais pas le cube et tentait de se reprendre, mais la limite de temps arrivait avant qu'il s'essait une 2e fois.|
+| avant |S|S|E|Peut-être là où ça semble le plus facile|Lors de l'échec, le cube a roulé dans la pince. Il l'a donc perdu.|
+| arrière |E|E|E|Incapable de prendre le cube|Comme les autres, il est trop à droite, la pince gacuhe vient frapper le milieu du cube. Prise impossible de cette façon|
 
 S = Succès  E = Échec  P = Partiel
 
+Problèmes observés:
+- Prise souvent trop à droite. La pince touche le centre du cube qui se déplace vers la gauche, alors la prise est impossible.
+- POur le dépôt dans la boite, le cube est souvent trop en haut à gauche de la boite et il tombe donc à côté. S'il n'y avait pas ce problème, le mouvement semble quand même plutôt bon.
+- Mouvement hésitant et un peu saccadé, mais ce n'est pas ce qui est le problème le plus important.
+
 ## Analyse de l'évaluation
+
+La policy réussit parfois, mais le comportement n'est pas assez fiable pour être conservé
+comme policy de référence.
+
+Le problème principal est systématique : la prise se fait trop à droite du cube. La pince
+gauche touche souvent le centre du cube, ce qui pousse le cube vers la gauche et empêche
+une prise stable. Ce problème apparaît surtout lorsque le cube est à gauche ou en arrière.
+
+Le dépôt présente aussi un biais : lorsque le cube est transporté jusqu'à la boîte, il arrive
+souvent trop haut et trop à gauche. Plusieurs essais auraient pu réussir si la position de
+dépôt avait été légèrement mieux centrée.
+
+Le mouvement hésitant et saccadé existe, mais il n'est pas le problème prioritaire. La policy
+semble avoir appris une trajectoire générale utile, mais avec un mauvais alignement spatial
+pour la prise et le dépôt.
 
 ## Hypothèse :
 
+Le dataset contient probablement trop peu de variations corrigées autour des cas difficiles,
+surtout cube à gauche et cube en arrière. La policy a appris une trajectoire moyenne qui passe
+trop à droite du cube et qui dépose trop haut à gauche dans la boîte.
+
+Le lot actuel est donc insuffisant pour généraliser correctement à toutes les positions testées.
+Il faut ajouter des épisodes ciblés, pas recommencer complètement.
+
 ## Décision :
+
+Ne pas officialiser `cube_dans_boite_v004_5000` comme policy réussie.
+
+Conserver le dataset `cube_dans_boite_v004` comme base de travail, mais créer un lot de
+correction ciblé avant le prochain entraînement.
+
+Correction prioritaire :
+- ajouter des épisodes où le cube est à gauche ;
+- ajouter des épisodes où le cube est en arrière ;
+- forcer une prise plus centrée sur le cube ;
+- forcer un dépôt plus centré dans la boîte, légèrement moins haut et moins à gauche ;
+- garder la boîte fixe ;
+- ne pas changer la résolution caméra ;
+- ne pas changer de policy architecture.
+
+Prochaine policy proposée : `cube_dans_boite_v004_10000` ou `cube_dans_boite_v005_5000`,
+selon que le nouveau lot est ajouté au dataset existant ou utilisé pour créer une version
+corrigée documentée.

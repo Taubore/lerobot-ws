@@ -71,6 +71,10 @@ Par défaut, le script masque les sorties verbeuses de LeRobot et de l'encodeur 
 l'enregistrement. Pour les réafficher lors d'un diagnostic, passer la constante `VERBOSE` à
 `True` dans `outils/enregistrer_dataset.py`.
 
+L'aperçu visuel Rerun de LeRobot reste désactivé par défaut. Pour l'activer pendant
+l'enregistrement et les phases de réinitialisation, passer `[enregistrement].display_data` à
+`true` dans `outils/config_lerobot_ws.toml`.
+
 Les fonctions de saisie interactives remettent le terminal en mode ligne avant les prompts. Cela
 évite les choix de menu invisibles après une interruption ou une écoute clavier directe.
 
