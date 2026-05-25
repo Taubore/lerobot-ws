@@ -225,3 +225,92 @@ Correction prioritaire :
 Prochaine policy proposée : `cube_dans_boite_v004_10000` ou `cube_dans_boite_v005_5000`,
 selon que le nouveau lot est ajouté au dataset existant ou utilisé pour créer une version
 corrigée documentée.
+
+# taubore/cube_dans_boite_v005
+
+## Objectif 
+
+Apprendre une première tâche complète de pick-and-place : saisir le cube dans le carré blanc,
+le soulever, le déposer dans la boîte. Un autre essais, avec plus d'entrainement et plus rigoureusement que les fois précédentes
+
+## Dataset cible
+
+Nom : taubore/cube_dans_boite_v005
+Tâche : prendre le cube et le déposer dans la boîte noire
+
+## Lots bruts
+
+- lot_001 : Cube au centre
+- lot_002 : Cube au centre-droit
+- lot_003 : Cube au centre-bas
+- lot_004 : Cube au centre-gauche
+- lot_005 : Cube au centre-bas
+
+## Résultats de l'évaluation
+
+Modèle : cube_dans_boite_v005_5000
+Mode : rollout standard, interpolation à 2
+Durée : 13 s
+
+| Position | Essai 1 | Essai 2 | Essai 3 | Résultat | Notes |
+|---|---|---|---|---|---|
+| centre |S|S|S|Très bien|Seulement une fois où le cube a été déposé un peu trop à gauche de la boîte, cela n'a pas engendré d'erreur, mais ça été proche de tomber à l'extérieur de la boite|
+| centre-droit |S|S|S|Très bien|Idem à "centre", le dernier essai au dépôt a touché le côté gauche de la boite. Le cube est tombé dans la boite, mais aurait pu basculer hors de la boite|
+| centre-bas |S|S|S|Bien|Idem pour le côté degauche de la boite. Il y a aussi la pince lors de la prise qui était trop vers la droite, donc la pince gauche touche au cube qui bascule vers le centre. Il aurait idéalement fallut que la pice soit plus centrée sur le cube|
+| centre-gauche |S|S|S|Bien|Le cube a touché le bord gauche de la boite les 3 fois|
+| centre-haut |S|S|S|Bien|Le cube a touché le bord gauche de la boite 2 fois|
+
+S = Succès  E = Échec  P = Partiel
+
+## Analyse de l'évaluation
+
+La policy réussit 15 essais sur 15 dans les positions testées. Le comportement est donc
+fonctionnel pour cette tâche dans le périmètre actuel : cube placé dans le carré blanc,
+boîte fixe, caméra globale Arducam en 640×480.
+
+La progression par rapport aux essais précédents est nette. Les positions centre,
+centre-droit, centre-bas, centre-gauche et centre-haut sont maintenant toutes réussies.
+
+Le problème principal restant n'est plus l'échec de la prise, mais la marge de sécurité au
+dépôt. Le cube touche souvent le bord gauche de la boîte, surtout pour centre-gauche et
+centre-haut. Cela indique un léger biais de dépôt vers la gauche.
+
+Un problème secondaire reste visible à la prise pour centre-bas : la pince arrive parfois
+un peu trop à droite du cube. Le cube bascule alors vers le centre, mais la prise reste
+suffisamment correcte pour réussir.
+
+Le mouvement est donc réussi, mais encore fragile. La policy est utilisable comme première
+réussite complète de pick-and-place, sans être encore une policy robuste.
+
+## Hypothèse :
+
+Le dataset `cube_dans_boite_v005` a corrigé le problème principal des essais précédents :
+la policy sait maintenant prendre le cube dans plusieurs positions proches du centre.
+
+Le léger biais au dépôt suggère que les démonstrations déposent probablement le cube trop
+près du côté gauche de la boîte, ou que la trajectoire moyenne apprise par ACT finit trop
+à gauche.
+
+Le cas centre-bas montre aussi que la prise pourrait être encore mieux centrée, mais ce
+n'est plus le facteur bloquant.
+
+## Décision :
+
+Conserver `cube_dans_boite_v005` comme premier dataset réussi pour une tâche complète de
+pick-and-place avec l'Arducam en 640×480.
+
+Conserver la trained policy évaluée comme première réussite fonctionnelle.
+
+Ne pas recommencer immédiatement un gros dataset.
+
+Créer au besoin une version `cube_dans_boite_v006` seulement si l'objectif est d'améliorer
+la marge de sécurité au dépôt. Cette version devrait viser une correction ciblée :
+- dépôt plus centré dans la boîte ;
+- éviter le bord gauche ;
+- prise légèrement plus centrée pour le cube centre-bas ;
+- garder la même résolution ;
+- garder la même architecture ACT ;
+- garder la boîte fixe.
+
+Pour fermer cette étape LeRobot, considérer `cube_dans_boite_v005` comme réussite de
+référence et passer ensuite à l'apprentissage pratique des outils de gestion des datasets.

@@ -42,6 +42,19 @@ sudo apt install v4l-utils
 - `lerobot_ws.egg.info/` : généré par pip install -e . pour le package "commun".
 - `outputs/`             : les policies sont générés ici.
 
+## Pratique de téléopération
+
+Le script `outils/pratique_teleoperation.py` sert à pratiquer un mouvement avec le bras leader
+SO-101, le bras follower SO-101 et la caméra globale, sans enregistrer de dataset.
+
+Il ouvre Rerun dès le démarrage, connecte la caméra configurée dans
+`outils/config_lerobot_ws.toml`, puis affiche les observations caméra pendant toute la session.
+La caméra est arrêtée à la déconnexion du robot, lors de l'arrêt du script avec `Ctrl+C`.
+
+```bash
+python lerobot-ws/outils/pratique_teleoperation.py
+```
+
 ## Enregistrement de datasets
 
 Le script `outils/enregistrer_dataset.py` sert à enregistrer des lots bruts avec un SO-101 leader,
@@ -71,9 +84,9 @@ Par défaut, le script masque les sorties verbeuses de LeRobot et de l'encodeur 
 l'enregistrement. Pour les réafficher lors d'un diagnostic, passer la constante `VERBOSE` à
 `True` dans `outils/enregistrer_dataset.py`.
 
-L'aperçu visuel Rerun de LeRobot reste désactivé par défaut. Pour l'activer pendant
-l'enregistrement et les phases de réinitialisation, passer `[enregistrement].display_data` à
-`true` dans `outils/config_lerobot_ws.toml`.
+L'aperçu visuel Rerun de LeRobot reste désactivé par défaut. Pour l'ouvrir dès le démarrage du
+script et l'utiliser pendant l'enregistrement et les phases de réinitialisation, passer
+`[enregistrement].display_data` à `true` dans `outils/config_lerobot_ws.toml`.
 
 Les fonctions de saisie interactives remettent le terminal en mode ligne avant les prompts. Cela
 évite les choix de menu invisibles après une interruption ou une écoute clavier directe.

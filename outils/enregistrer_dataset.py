@@ -331,6 +331,10 @@ def enregistrer_dataset() -> None:
     if dataset_config.push_to_hub:
         raise ValueError("Ce script exige `push_to_hub = false` dans `config_lerobot_ws.toml`.")
 
+    if config.enregistrement.display_data:
+        with sortie_lerobot_discrete():
+            init_rerun(session_name="recording")
+
     repo_id = choisir_repo_dataset(config)
 
     if repo_id is None:
@@ -368,10 +372,6 @@ def enregistrer_dataset() -> None:
             robot_action_processor,
             robot_observation_processor,
         ) = make_default_processors()
-
-        if config.enregistrement.display_data:
-            with sortie_lerobot_discrete():
-                init_rerun(session_name="recording")
 
         attendre_demarrage(config.enregistrement.delai_avant_demarrage_s)
 
