@@ -12,6 +12,24 @@ hauteur = 480
 fps = 30
 fourcc = "MJPG"
 
+[materiel.cameras_dataset.globale]
+nom = "globale"
+backend = "realsense"
+serial = "310522072905"
+largeur = 640
+hauteur = 480
+fps = 15
+use_depth = false
+
+[materiel.cameras_dataset.pince]
+nom = "pince"
+backend = "opencv"
+chemin = "/dev/video8"
+largeur = 640
+hauteur = 480
+fps = 30
+fourcc = "MJPG"
+
 [workspace]
 racine = "/home/taubore/Projets/lerobot/lerobot-ws"
 
@@ -20,9 +38,9 @@ delai_avant_demarrage_s = 10
 display_data = true
 
 [enregistrement.dataset]
-repo_id_defaut = "taubore/cube_dans_boite_v005_lotNN"
-tache_defaut = "Prendre le cube et le déposer dans la boîte."
-nb_episodes = 5
+repo_id_defaut = "taubore/test_realsense_arducam_v001"
+tache_defaut = "Tester le setup deux caméras avec la RealSense globale et l'Arducam sur la pince."
+nb_episodes = 3
 duree_episode_s = 15
 duree_reinitialisation_s = 6
 use_videos = true
@@ -34,8 +52,8 @@ dossier_sortie = "outputs/train"
 
 [execution_politique]
 strategie = "base"
-nom_politique_defaut = "cube_dans_boite_v005_5000"
+nom_politique_defaut = "test_realsense_arducam_v001_5000"
 duree_s = 13
-tache_defaut = "Prendre le cube et le déposer dans la boîte."
+tache_defaut = "Tester le setup deux caméras avec la RealSense globale et l'Arducam sur la pince."
 display_data = false
 interpolation_multiplier = 2

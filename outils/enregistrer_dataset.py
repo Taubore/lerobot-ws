@@ -9,6 +9,7 @@ laissées à d'autres scripts.
 """
 
 import os
+import select
 import shutil
 import sys
 import termios
@@ -17,8 +18,11 @@ from pathlib import Path
 from time import sleep
 from typing import Any, Iterator
 
-from lerobot.cameras import CameraConfig
+import numpy as np
+
+from lerobot.cameras import Camera, CameraConfig, ColorMode, Cv2Rotation, make_cameras_from_configs
 from lerobot.cameras.opencv import OpenCVCameraConfig
+from lerobot.cameras.realsense import RealSenseCameraConfig
 from lerobot.common.control_utils import init_keyboard_listener
 from lerobot.datasets import (
     LeRobotDataset,
@@ -30,8 +34,10 @@ from lerobot.processor import make_default_processors
 from lerobot.robots.so_follower import SO101Follower, SO101FollowerConfig
 from lerobot.scripts.lerobot_record import init_rerun, record_loop
 from lerobot.teleoperators.so_leader import SO101Leader, SO101LeaderConfig
+from lerobot.types import RobotAction, RobotObservation
 from lerobot.utils.constants import HF_LEROBOT_HOME
 from lerobot.utils.feature_utils import combine_feature_dicts
+from lerobot.utils.visualization_utils import log_rerun_data as log_rerun_data_lerobot
 
 from commun import camera_v4l2
 from commun import config_lerobot
@@ -43,6 +49,12 @@ CHOIX_SUPPRIMER = "2"
 CHOIX_NOUVEAU_NOM = "3"
 DELAI_APRES_ANNULATION_S = 2.0
 CHEMIN_CONFIG = Path(__file__).resolve().parent / "config_lerobot_ws.toml"
+BACKEND_OPENCV = "opencv"
+BACKEND_REALSENSE = "realsense"
+CHEMIN_RERUN_DEUX_CAMERAS = "cameras/deux_cameras"
+CLE_CAMERA_GLOBALE = "globale"
+CLE_CAMERA_PINCE = "pince"
+DELAI_APERCU_CAMERA_S = 1.0 / 15.0
 VERBOSE = False
 
 
@@ -133,6 +145,191 @@ def restaurer_echo_terminal(attributs: list[Any] | None) -> None:
         termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, attributs)
 
 
+def normaliser_image_rerun(valeur: Any) -> np.ndarray | None:
+    """
+    Retourner une image compatible Rerun si la valeur ressemble à une image.
+    """
+
+    if not isinstance(valeur, np.ndarray):
+        return None
+
+    image = valeur
+
+    if image.ndim == 3 and image.shape[0] in (1, 3, 4) and image.shape[-1] not in (1, 3, 4):
+        image = np.transpose(image, (1, 2, 0))
+
+    if image.ndim != 3:
+        return None
+
+    return image
+
+
+def composer_image_deux_cameras(observation: RobotObservation) -> np.ndarray | None:
+    """
+    Composer une image unique avec la caméra globale à gauche et la pince à droite.
+    """
+
+    image_globale = normaliser_image_rerun(observation.get(CLE_CAMERA_GLOBALE))
+    image_pince = normaliser_image_rerun(observation.get(CLE_CAMERA_PINCE))
+
+    if image_globale is None or image_pince is None:
+        return None
+
+    if image_globale.shape[0] != image_pince.shape[0]:
+        return None
+
+    return np.concatenate((image_globale, image_pince), axis=1)
+
+
+def journaliser_image_deux_cameras(image_deux_cameras: np.ndarray) -> None:
+    """
+    Envoyer l'image composite des deux caméras vers Rerun.
+    """
+
+    import rerun as rr
+
+    rr.log(CHEMIN_RERUN_DEUX_CAMERAS, rr.Image(image_deux_cameras))
+
+
+def journaliser_donnees_rerun(
+    observation: RobotObservation | None = None,
+    action: RobotAction | None = None,
+    compress_images: bool = False,
+) -> None:
+    """
+    Journaliser les données LeRobot et une vue composite des deux caméras.
+    """
+
+    log_rerun_data_lerobot(
+        observation=observation,
+        action=action,
+        compress_images=compress_images,
+    )
+
+    if observation is None:
+        return
+
+    image_deux_cameras = composer_image_deux_cameras(observation)
+
+    if image_deux_cameras is not None:
+        journaliser_image_deux_cameras(image_deux_cameras)
+
+
+def activer_affichage_deux_cameras_rerun() -> None:
+    """
+    Remplacer localement la journalisation Rerun utilisée par `record_loop`.
+    """
+
+    record_loop.__globals__["log_rerun_data"] = journaliser_donnees_rerun
+
+
+def configurer_vue_deux_cameras_rerun() -> None:
+    """
+    Configurer Rerun pour afficher les deux caméras côte à côte.
+    """
+
+    import rerun as rr
+    import rerun.blueprint as rrb
+
+    rr.send_blueprint(
+        rrb.Blueprint(
+            rrb.Spatial2DView(
+                origin=CHEMIN_RERUN_DEUX_CAMERAS,
+                name="Caméras globale et pince",
+            ),
+            collapse_panels=True,
+        )
+    )
+
+
+def creer_configs_cameras_dataset(
+    config: config_lerobot.ConfigLeRobotWs,
+) -> dict[str, CameraConfig]:
+    """
+    Créer les configurations LeRobot des caméras du dataset.
+    """
+
+    return {
+        camera.nom: creer_config_camera_dataset(camera)
+        for camera in config.materiel.cameras_dataset.values()
+    }
+
+
+def initialiser_cameras_opencv_v4l2(config: config_lerobot.ConfigLeRobotWs) -> None:
+    """
+    Appliquer la configuration V4L2 aux caméras OpenCV du dataset.
+    """
+
+    for camera in config.materiel.cameras_dataset.values():
+        if camera.backend != BACKEND_OPENCV:
+            continue
+
+        if camera.chemin is None:
+            raise ValueError(f"La caméra `{camera.nom}` exige un chemin OpenCV.")
+
+        camera_v4l2.initialiser_camera_arducam(
+            camera=str(camera.chemin),
+            largeur=camera.largeur,
+            hauteur=camera.hauteur,
+            fps=camera.fps,
+        )
+
+
+def lire_observation_cameras(cameras: dict[str, Camera]) -> RobotObservation:
+    """
+    Lire une image sur chaque caméra connectée.
+    """
+
+    return {nom_camera: camera.read() for nom_camera, camera in cameras.items()}
+
+
+def entree_disponible() -> bool:
+    """
+    Indiquer si l'utilisateur a appuyé sur Entrée dans le terminal.
+    """
+
+    if not sys.stdin.isatty():
+        return True
+
+    lecture, _ecriture, _erreur = select.select([sys.stdin], [], [], 0)
+
+    return bool(lecture)
+
+
+def afficher_apercu_cameras(config: config_lerobot.ConfigLeRobotWs) -> None:
+    """
+    Afficher les deux caméras dans Rerun avant les prompts d'enregistrement.
+    """
+
+    cameras = make_cameras_from_configs(creer_configs_cameras_dataset(config))
+
+    try:
+        for camera in cameras.values():
+            camera.connect()
+
+        print("Aperçu des caméras actif dans Rerun.")
+        print("Ajuster le cadrage, puis appuyer sur Entrée pour continuer.")
+
+        while True:
+            observation = lire_observation_cameras(cameras)
+            image_deux_cameras = composer_image_deux_cameras(observation)
+
+            if image_deux_cameras is not None:
+                journaliser_image_deux_cameras(image_deux_cameras)
+
+            if entree_disponible():
+                if sys.stdin.isatty():
+                    sys.stdin.readline()
+                break
+
+            sleep(DELAI_APERCU_CAMERA_S)
+
+    finally:
+        for camera in cameras.values():
+            if camera.is_connected:
+                camera.disconnect()
+
+
 def saisir_texte(invite: str, texte_defaut: str) -> str:
     """
     Demander un texte non vide avec une valeur par défaut préremplie.
@@ -149,28 +346,55 @@ def saisir_texte(invite: str, texte_defaut: str) -> str:
 
 def creer_robot(config: config_lerobot.ConfigLeRobotWs) -> SO101Follower:
     """
-    Créer le bras SO101 follower avec la caméra globale.
+    Créer le bras SO101 follower avec les caméras du dataset.
     """
 
     robot = config.materiel.robot
-    camera = config.materiel.camera_globale
-    cameras: dict[str, CameraConfig] = {
-        camera.nom: OpenCVCameraConfig(
+
+    config_robot = SO101FollowerConfig(
+        port=robot.port_follower,
+        id=robot.id_follower,
+        cameras=creer_configs_cameras_dataset(config),
+    )
+
+    return SO101Follower(config_robot)
+
+
+def creer_config_camera_dataset(camera: config_lerobot.ConfigCameraDataset) -> CameraConfig:
+    """
+    Créer la configuration LeRobot correspondant au backend caméra demandé.
+    """
+
+    if camera.backend == BACKEND_REALSENSE:
+        if camera.serial is None:
+            raise ValueError(f"La caméra `{camera.nom}` exige un numéro de série RealSense.")
+
+        return RealSenseCameraConfig(
+            serial_number_or_name=camera.serial,
+            width=camera.largeur,
+            height=camera.hauteur,
+            fps=camera.fps,
+            color_mode=ColorMode.RGB,
+            use_depth=camera.use_depth,
+            rotation=Cv2Rotation.NO_ROTATION,
+            warmup_s=3,
+        )
+
+    if camera.backend == BACKEND_OPENCV:
+        if camera.chemin is None:
+            raise ValueError(f"La caméra `{camera.nom}` exige un chemin OpenCV.")
+
+        return OpenCVCameraConfig(
             index_or_path=camera.chemin,
             width=camera.largeur,
             height=camera.hauteur,
             fps=camera.fps,
             fourcc=camera.fourcc,
+            color_mode=ColorMode.RGB,
+            rotation=Cv2Rotation.NO_ROTATION,
         )
-    }
 
-    config_robot = SO101FollowerConfig(
-        port=robot.port_follower,
-        id=robot.id_follower,
-        cameras=cameras,
-    )
-
-    return SO101Follower(config_robot)
+    raise ValueError(f"Backend caméra non supporté : {camera.backend}")
 
 
 def creer_teleop(config: config_lerobot.ConfigLeRobotWs) -> SO101Leader:
@@ -219,12 +443,23 @@ def creer_dataset(
 
     return LeRobotDataset.create(
         repo_id=repo_id,
-        fps=config.materiel.camera_globale.fps,
+        fps=fps_enregistrement(config),
         features=combine_feature_dicts(action_features, observation_features),
         robot_type=robot.name,
         use_videos=dataset_config.use_videos,
         image_writer_threads=dataset_config.image_writer_threads,
     )
+
+
+def fps_enregistrement(config: config_lerobot.ConfigLeRobotWs) -> int:
+    """
+    Retourner le FPS commun de l'enregistrement.
+
+    La RealSense validée fonctionne à 15 FPS. Le dataset utilise donc le plus petit FPS caméra
+    pour éviter de demander une cadence supérieure à une caméra disponible.
+    """
+
+    return min(camera.fps for camera in config.materiel.cameras_dataset.values())
 
 
 def chemin_dataset_cache(repo_id: str) -> Path:
@@ -326,14 +561,19 @@ def enregistrer_dataset() -> None:
 
     config = config_lerobot.charger_config(CHEMIN_CONFIG)
     dataset_config = config.enregistrement.dataset
-    camera = config.materiel.camera_globale
+    fps_dataset = fps_enregistrement(config)
 
     if dataset_config.push_to_hub:
         raise ValueError("Ce script exige `push_to_hub = false` dans `config_lerobot_ws.toml`.")
 
+    initialiser_cameras_opencv_v4l2(config)
+
     if config.enregistrement.display_data:
         with sortie_lerobot_discrete():
             init_rerun(session_name="recording")
+        activer_affichage_deux_cameras_rerun()
+        configurer_vue_deux_cameras_rerun()
+        afficher_apercu_cameras(config)
 
     repo_id = choisir_repo_dataset(config)
 
@@ -343,13 +583,6 @@ def enregistrer_dataset() -> None:
 
     tache = saisir_texte("Tâche : ", dataset_config.tache_defaut)
     afficher_demarrage(repo_id, tache)
-
-    camera_v4l2.initialiser_camera_arducam(
-        camera=str(camera.chemin),
-        largeur=camera.largeur,
-        hauteur=camera.hauteur,
-        fps=camera.fps,
-    )
 
     robot = creer_robot(config)
     teleop = creer_teleop(config)
@@ -387,7 +620,7 @@ def enregistrer_dataset() -> None:
                     record_loop(
                         robot=robot,
                         events=events,
-                        fps=camera.fps,
+                        fps=fps_dataset,
                         teleop_action_processor=teleop_action_processor,
                         robot_action_processor=robot_action_processor,
                         robot_observation_processor=robot_observation_processor,
@@ -413,7 +646,7 @@ def enregistrer_dataset() -> None:
                             record_loop(
                                 robot=robot,
                                 events=events,
-                                fps=camera.fps,
+                                fps=fps_dataset,
                                 teleop_action_processor=teleop_action_processor,
                                 robot_action_processor=robot_action_processor,
                                 robot_observation_processor=robot_observation_processor,
@@ -442,7 +675,7 @@ def enregistrer_dataset() -> None:
                         record_loop(
                             robot=robot,
                             events=events,
-                            fps=camera.fps,
+                            fps=fps_dataset,
                             teleop_action_processor=teleop_action_processor,
                             robot_action_processor=robot_action_processor,
                             robot_observation_processor=robot_observation_processor,

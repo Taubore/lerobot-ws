@@ -58,10 +58,11 @@ python lerobot-ws/outils/pratique_teleoperation.py
 ## Enregistrement de datasets
 
 Le script `outils/enregistrer_dataset.py` sert à enregistrer des lots bruts avec un SO-101 leader,
-un SO-101 follower et une caméra globale Arducam.
+un SO-101 follower, une caméra globale RealSense et une caméra de pince Arducam.
 
 Les ports, identifiants de bras, paramètres caméra et valeurs par défaut d'enregistrement sont
-centralisés dans `outils/config_lerobot_ws.toml`.
+centralisés dans `outils/config_lerobot_ws.toml`. Le dataset témoin courant utilise les features
+`observation.images.globale` et `observation.images.pince`.
 
 Il laisse LeRobot stocker le lot dans son cache local :
 `~/.cache/huggingface/lerobot/{repo_id}`. Il ne pousse pas le dataset vers Hugging Face Hub et
@@ -114,4 +115,5 @@ officialisé depuis le workspace avec `LeRobotDataset`. Il affiche un résumé t
 statistiques de durée des épisodes et une suggestion pour `[execution_politique].duree_s`.
 
 Si la vérification réussit, il écrit aussi un manifeste Markdown `manifeste.md` dans le dossier
-du dataset vérifié.
+du dataset vérifié. Ce manifeste résume aussi les tâches déclarées et quelques contrôles
+simples sur les métadonnées d'épisodes.

@@ -40,6 +40,23 @@ class ConfigCamera:
 
 
 @dataclass(frozen=True)
+class ConfigCameraDataset:
+    """
+    Configuration d'une caméra utilisée pendant l'enregistrement de dataset.
+    """
+
+    nom: str
+    backend: str
+    largeur: int
+    hauteur: int
+    fps: int
+    chemin: Path | None
+    serial: str | None
+    fourcc: str | None
+    use_depth: bool
+
+
+@dataclass(frozen=True)
 class ConfigDatasetEnregistrement:
     """
     Configuration propre au lot de dataset à enregistrer.
@@ -116,6 +133,7 @@ class ConfigMateriel:
 
     robot: ConfigRobot
     camera_globale: ConfigCamera
+    cameras_dataset: dict[str, ConfigCameraDataset]
 
 
 @dataclass(frozen=True)
@@ -160,6 +178,7 @@ def _charger_materiel(donnees: dict[str, Any]) -> ConfigMateriel:
     materiel = donnees["materiel"]
     robot = materiel["robot"]
     camera = materiel["camera_globale"]
+    cameras_dataset = materiel["cameras_dataset"]
 
     return ConfigMateriel(
         robot=ConfigRobot(
@@ -176,6 +195,29 @@ def _charger_materiel(donnees: dict[str, Any]) -> ConfigMateriel:
             fps=camera["fps"],
             fourcc=camera["fourcc"],
         ),
+        cameras_dataset={
+            cle: _charger_camera_dataset(camera_dataset)
+            for cle, camera_dataset in cameras_dataset.items()
+        },
+    )
+
+
+def _charger_camera_dataset(camera: dict[str, Any]) -> ConfigCameraDataset:
+    chemin = camera.get("chemin")
+    serial = camera.get("serial")
+    fourcc = camera.get("fourcc")
+    use_depth = camera.get("use_depth", False)
+
+    return ConfigCameraDataset(
+        nom=camera["nom"],
+        backend=camera["backend"],
+        largeur=camera["largeur"],
+        hauteur=camera["hauteur"],
+        fps=camera["fps"],
+        chemin=Path(chemin) if isinstance(chemin, str) else None,
+        serial=serial if isinstance(serial, str) else None,
+        fourcc=fourcc if isinstance(fourcc, str) else None,
+        use_depth=use_depth if isinstance(use_depth, bool) else False,
     )
 
 

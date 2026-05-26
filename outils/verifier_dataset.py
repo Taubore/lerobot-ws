@@ -9,6 +9,7 @@ from pathlib import Path
 from statistics import mean, median
 from typing import Any
 
+import pandas as pd
 from lerobot.datasets import LeRobotDataset
 from lerobot.utils.constants import HF_LEROBOT_HOME
 
@@ -24,6 +25,7 @@ PREFIXE_CAMERA_VIDEO = "observation.videos."
 TEXTE_NON_DISPONIBLE = "Non disponible"
 TEXTE_OUI = "Oui"
 TEXTE_NON = "Non"
+TOLERANCE_TIMESTAMP_S = 1e-6
 
 
 @dataclass(frozen=True)
@@ -60,6 +62,32 @@ class StatistiquesDurees:
     duree_moyenne_s: float
     duree_mediane_s: float
     suggestion_duree_s: int
+
+
+@dataclass(frozen=True)
+class ResumeTaches:
+    """
+    Résume les tâches déclarées dans les métadonnées du dataset.
+    """
+
+    taches: list[str]
+    tous_episodes_avec_tache: bool | None
+    tous_episodes_meme_tache: bool | None
+
+
+@dataclass(frozen=True)
+class ControleEpisodes:
+    """
+    Résume la cohérence minimale des métadonnées d'épisodes.
+    """
+
+    fichier_detecte: bool
+    chemin_fichier: Path | None
+    nombre_lignes: int | None
+    index_dataset_continus: bool | None
+    premier_index: int | None
+    dernier_index: int | None
+    bornes_video_continues: bool | None
 
 
 def charger_configuration() -> config_lerobot.ConfigLeRobotWs:
@@ -198,6 +226,9 @@ def formater_valeur(valeur: object | None) -> str:
 
     if valeur is None:
         return TEXTE_NON_DISPONIBLE
+
+    if isinstance(valeur, bool):
+        return formater_booleen(valeur)
 
     return str(valeur)
 
@@ -466,6 +497,359 @@ def lister_taches(dataset: LeRobotDataset) -> str:
     return TEXTE_NON_DISPONIBLE
 
 
+def lire_texte_cellule(valeur: Any) -> str | None:
+    """
+    Lire une cellule Pandas comme texte non vide.
+    """
+
+    if isinstance(valeur, list | tuple):
+        textes = [lire_texte_cellule(element) for element in valeur]
+        textes_valides = [texte for texte in textes if texte is not None]
+        return ", ".join(textes_valides) if textes_valides else None
+
+    methode_tolist = getattr(valeur, "tolist", None)
+
+    if callable(methode_tolist):
+        valeur_liste = methode_tolist()
+
+        if isinstance(valeur_liste, list):
+            return lire_texte_cellule(valeur_liste)
+
+    if pd.isna(valeur):
+        return None
+
+    if isinstance(valeur, str):
+        texte = valeur.strip()
+        return texte if texte else None
+
+    methode_item = getattr(valeur, "item", None)
+
+    if callable(methode_item):
+        return lire_texte_cellule(methode_item())
+
+    texte = str(valeur).strip()
+    return texte if texte else None
+
+
+def lire_entier_cellule(valeur: Any) -> int | None:
+    """
+    Lire une cellule Pandas comme entier si possible.
+    """
+
+    if pd.isna(valeur):
+        return None
+
+    if isinstance(valeur, int):
+        return valeur
+
+    if isinstance(valeur, float) and valeur.is_integer():
+        return int(valeur)
+
+    methode_item = getattr(valeur, "item", None)
+
+    if callable(methode_item):
+        return lire_entier_cellule(methode_item())
+
+    return None
+
+
+def lire_flottant_cellule(valeur: Any) -> float | None:
+    """
+    Lire une cellule Pandas comme flottant si possible.
+    """
+
+    if pd.isna(valeur):
+        return None
+
+    if isinstance(valeur, int | float):
+        return float(valeur)
+
+    methode_item = getattr(valeur, "item", None)
+
+    if callable(methode_item):
+        return lire_flottant_cellule(methode_item())
+
+    return None
+
+
+def colonne_tache(dataframe: pd.DataFrame) -> str | None:
+    """
+    Détecter la colonne qui contient le texte d'une tâche.
+    """
+
+    colonnes_prioritaires = ["task", "tasks", "name", "description"]
+
+    for colonne in colonnes_prioritaires:
+        if colonne in dataframe.columns:
+            return colonne
+
+    for colonne in dataframe.columns:
+        serie = dataframe[colonne].dropna()
+
+        if not serie.empty and isinstance(serie.iloc[0], str):
+            return str(colonne)
+
+    return None
+
+
+def lire_taches_parquet(racine: Path) -> list[str]:
+    """
+    Lire directement les tâches déclarées dans meta/tasks.parquet si le fichier existe.
+    """
+
+    chemin_taches = racine / "meta" / "tasks.parquet"
+
+    if not chemin_taches.exists():
+        return []
+
+    dataframe = pd.read_parquet(chemin_taches)
+    colonne = colonne_tache(dataframe)
+
+    if colonne is None:
+        return []
+
+    taches: list[str] = []
+
+    for valeur in dataframe[colonne].tolist():
+        texte = lire_texte_cellule(valeur)
+
+        if texte is not None:
+            taches.append(texte)
+
+    return taches
+
+
+def premier_fichier_episodes(racine: Path) -> Path | None:
+    """
+    Retourner le premier fichier Parquet trouvé dans meta/episodes.
+    """
+
+    dossier_episodes = racine / "meta" / "episodes"
+
+    if not dossier_episodes.exists():
+        return None
+
+    fichiers = sorted(dossier_episodes.rglob("*.parquet"))
+    return fichiers[0] if fichiers else None
+
+
+def verifier_taches_episodes(dataframe: pd.DataFrame) -> tuple[bool | None, bool | None]:
+    """
+    Vérifier la présence et l'unicité des tâches déclarées par épisode.
+    """
+
+    colonne = colonne_tache(dataframe)
+
+    if colonne is None:
+        return None, None
+
+    valeurs = [lire_texte_cellule(valeur) for valeur in dataframe[colonne].tolist()]
+
+    if not valeurs:
+        return None, None
+
+    tous_avec_tache = all(valeur is not None for valeur in valeurs)
+    valeurs_presentes = [valeur for valeur in valeurs if valeur is not None]
+    meme_tache = len(set(valeurs_presentes)) == 1 if valeurs_presentes else None
+
+    return tous_avec_tache, meme_tache
+
+
+def extraire_taches_episodes(dataframe: pd.DataFrame) -> list[str]:
+    """
+    Extraire les tâches uniques depuis les métadonnées d'épisodes.
+    """
+
+    colonne = colonne_tache(dataframe)
+
+    if colonne is None:
+        return []
+
+    taches: list[str] = []
+
+    for valeur in dataframe[colonne].tolist():
+        texte = lire_texte_cellule(valeur)
+
+        if texte is not None and texte not in taches:
+            taches.append(texte)
+
+    return taches
+
+
+def index_dataset_continus(dataframe: pd.DataFrame) -> tuple[bool | None, int | None, int | None]:
+    """
+    Vérifier la continuité des index dataset_from_index et dataset_to_index.
+    """
+
+    if "dataset_from_index" not in dataframe.columns or "dataset_to_index" not in dataframe.columns:
+        return None, None, None
+
+    bornes: list[tuple[int, int]] = []
+
+    for _, ligne in dataframe.iterrows():
+        debut = lire_entier_cellule(ligne["dataset_from_index"])
+        fin = lire_entier_cellule(ligne["dataset_to_index"])
+
+        if debut is None or fin is None:
+            return False, None, None
+
+        bornes.append((debut, fin))
+
+    if not bornes:
+        return None, None, None
+
+    continus = all(
+        fin == prochain_debut
+        for (_, fin), (prochain_debut, _) in zip(bornes, bornes[1:])
+    )
+    premier_index = bornes[0][0]
+    dernier_index = bornes[-1][1]
+
+    return continus, premier_index, dernier_index
+
+
+def colonnes_bornes_video(dataframe: pd.DataFrame) -> tuple[str, str] | None:
+    """
+    Détecter la première paire de colonnes vidéo from_timestamp/to_timestamp.
+    """
+
+    suffixe_debut = "/from_timestamp"
+    suffixe_fin = "/to_timestamp"
+
+    for colonne_debut in dataframe.columns:
+        nom_colonne = str(colonne_debut)
+
+        if not nom_colonne.endswith(suffixe_debut):
+            continue
+
+        prefixe = nom_colonne[: -len(suffixe_debut)]
+        colonne_fin = f"{prefixe}{suffixe_fin}"
+
+        if colonne_fin in dataframe.columns:
+            return nom_colonne, colonne_fin
+
+    return None
+
+
+def bornes_video_continues(dataframe: pd.DataFrame) -> bool | None:
+    """
+    Vérifier que la fin vidéo d'un épisode correspond au début du suivant.
+    """
+
+    colonnes = colonnes_bornes_video(dataframe)
+
+    if colonnes is None:
+        return None
+
+    colonne_debut, colonne_fin = colonnes
+    bornes: list[tuple[float, float]] = []
+
+    for _, ligne in dataframe.iterrows():
+        debut = lire_flottant_cellule(ligne[colonne_debut])
+        fin = lire_flottant_cellule(ligne[colonne_fin])
+
+        if debut is None or fin is None:
+            return False
+
+        bornes.append((debut, fin))
+
+    if not bornes:
+        return None
+
+    return all(
+        abs(fin - prochain_debut) <= TOLERANCE_TIMESTAMP_S
+        for (_, fin), (prochain_debut, _) in zip(bornes, bornes[1:])
+    )
+
+
+def lire_resume_taches_et_episodes(racine: Path) -> tuple[ResumeTaches, ControleEpisodes]:
+    """
+    Lire les métadonnées Parquet utiles au manifeste, si elles sont disponibles.
+    """
+
+    taches = lire_taches_parquet(racine)
+    chemin_episodes = premier_fichier_episodes(racine)
+
+    if chemin_episodes is None:
+        return (
+            ResumeTaches(
+                taches=taches,
+                tous_episodes_avec_tache=None,
+                tous_episodes_meme_tache=None,
+            ),
+            ControleEpisodes(
+                fichier_detecte=False,
+                chemin_fichier=None,
+                nombre_lignes=None,
+                index_dataset_continus=None,
+                premier_index=None,
+                dernier_index=None,
+                bornes_video_continues=None,
+            ),
+        )
+
+    dataframe_episodes = pd.read_parquet(chemin_episodes)
+
+    if not taches:
+        taches = extraire_taches_episodes(dataframe_episodes)
+
+    tous_avec_tache, meme_tache = verifier_taches_episodes(dataframe_episodes)
+    index_continus, premier_index, dernier_index = index_dataset_continus(dataframe_episodes)
+
+    return (
+        ResumeTaches(
+            taches=taches,
+            tous_episodes_avec_tache=tous_avec_tache,
+            tous_episodes_meme_tache=meme_tache,
+        ),
+        ControleEpisodes(
+            fichier_detecte=True,
+            chemin_fichier=chemin_episodes,
+            nombre_lignes=len(dataframe_episodes),
+            index_dataset_continus=index_continus,
+            premier_index=premier_index,
+            dernier_index=dernier_index,
+            bornes_video_continues=bornes_video_continues(dataframe_episodes),
+        ),
+    )
+
+
+def formater_taches_structure(resume: ResumeTaches, dataset: LeRobotDataset) -> str:
+    """
+    Formater les tâches pour la section de structure détectée.
+    """
+
+    if resume.taches:
+        return ", ".join(resume.taches)
+
+    return lister_taches(dataset)
+
+
+def formater_liste_taches(taches: list[str]) -> str:
+    """
+    Formater la liste des tâches pour le manifeste.
+    """
+
+    if not taches:
+        return TEXTE_NON_DISPONIBLE
+
+    return "<br>".join(f"{index} : {tache}" for index, tache in enumerate(taches))
+
+
+def formater_chemin_relatif(chemin: Path | None, racine: Path) -> str:
+    """
+    Formater un chemin relatif au dataset quand c'est possible.
+    """
+
+    if chemin is None:
+        return TEXTE_NON_DISPONIBLE
+
+    try:
+        return str(chemin.relative_to(racine))
+    except ValueError:
+        return str(chemin)
+
+
 def creer_contenu_manifest(
     origine: OrigineDataset,
     repo_id: str,
@@ -484,11 +868,13 @@ def creer_contenu_manifest(
     robot_type = getattr(dataset.meta, "robot_type", None)
     images_presentes = (racine / "images").exists()
     videos_presentes = (racine / "videos").exists()
+    resume_taches, controle_episodes = lire_resume_taches_et_episodes(racine)
     observations_presentes = any(cle.startswith("observation.") for cle in features)
     cameras_detectees = len(cles_cameras) > 0
     donnees_visuelles_presentes = images_presentes or videos_presentes or cameras_detectees
     features_texte = ", ".join(sorted(features)) if features else TEXTE_NON_DISPONIBLE
     cameras_texte = ", ".join(cles_cameras) if cles_cameras else TEXTE_NON_DISPONIBLE
+    tous_episodes_meme_tache = formater_valeur(resume_taches.tous_episodes_meme_tache)
     lignes_episodes = "\n".join(
         f"| {episode.episode:02d} | {episode.nb_frames} | {episode.duree_s:.2f} s |"
         for episode in statistiques.episodes
@@ -523,8 +909,29 @@ def creer_contenu_manifest(
 | Nombre de frames | {dataset.num_frames} |
 | FPS | {formater_valeur(fps)} |
 | Robot type | {formater_valeur(robot_type)} |
-| Tâches disponibles | {lister_taches(dataset)} |
+| Tâches disponibles | {formater_taches_structure(resume_taches, dataset)} |
 | Features principales | {features_texte} |
+
+## Tâches
+
+| Champ | Valeur |
+| --- | --- |
+| Nombre de tâches | {len(resume_taches.taches)} |
+| Tâches | {formater_liste_taches(resume_taches.taches)} |
+| Tous les épisodes ont une tâche | {formater_valeur(resume_taches.tous_episodes_avec_tache)} |
+| Tous les épisodes utilisent la même tâche | {tous_episodes_meme_tache} |
+
+## Métadonnées des épisodes
+
+| Contrôle | Résultat |
+| --- | --- |
+| Fichier épisodes détecté | {formater_booleen(controle_episodes.fichier_detecte)} |
+| Fichier épisodes | {formater_chemin_relatif(controle_episodes.chemin_fichier, racine)} |
+| Nombre de lignes épisodes | {formater_valeur(controle_episodes.nombre_lignes)} |
+| Index de dataset continus | {formater_valeur(controle_episodes.index_dataset_continus)} |
+| Premier index | {formater_valeur(controle_episodes.premier_index)} |
+| Dernier index | {formater_valeur(controle_episodes.dernier_index)} |
+| Bornes vidéo continues | {formater_valeur(controle_episodes.bornes_video_continues)} |
 
 ## Données robotiques
 
